@@ -1,12 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { getMediaSrcAndType } from "../../utils/getMediaSrcAndType";
 import { Rnd } from "react-rnd";
+import AppContext from "../../AppContext";
 
-const Track = ({ sourceAndTiming, setSourceAndTiming, selectedElement, setSelectedElement, isSplit, setIsSplit }) => {
+const Track = ({  isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
   const [elements, setElements] = useState([]); // Store element IDs
   const [trackMedia, setTrackMedia] = useState([]); // Store media data
   const [positions, setPositions] = useState({}); // Store positions and sizes
   const [isDraggable, setIsDraggable] = useState(true);
+  const {
+    isSpeedChange,
+    setIsSpeedChange,
+    sourceAndTiming,
+    setSourceAndTiming,
+    selectedElement,
+    setSelectedElement,
+  } = useContext(AppContext);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -16,10 +25,11 @@ const Track = ({ sourceAndTiming, setSourceAndTiming, selectedElement, setSelect
     const x = e.clientX - trackRect.left; // Position relative to the track
     const y = 0; // Fixed y-coordinate
     const width = duration * 10; // Default width based on duration
-
+    console.log("x", x);
+    
     // Check for overlap
     const isOverlapping = checkOverlap(
-      { left: x, right: x + width },
+      { left: x, right: (x + width) },
       elements,
       positions
     );
@@ -37,14 +47,18 @@ const Track = ({ sourceAndTiming, setSourceAndTiming, selectedElement, setSelect
         {
           id,
           source: src,
-          start: x * 0.1,
-          newStart: x * 0.1,
-          end: x * 0.1 + Number(duration),
-          newEnd: x * 0.1 + Number(duration),
+          start: (x * 0.1),
+          newStart: (x * 0.1),
+          speedStart: (x * 0.1),
+          end: x*0.1 + Number(duration),
+          newEnd: (x * 0.1) + Number(duration),
+          speedEnd:(x * 0.1) + Number(duration),
           position: { x: 0, y: 0 },
           size: { width: 400, height: 225 },
           trackX: x,
-          mediaType:mediaType
+          mediaType:mediaType,
+          borderRadius:"0",
+          speed:1
         },
       ]);
     }
@@ -80,15 +94,16 @@ const Track = ({ sourceAndTiming, setSourceAndTiming, selectedElement, setSelect
           item.id === id
             ? {
                 ...item,
-
-                newStart: newX * 0.1 + (item.newStart - item.start),
-                start: newX * 0.1,
+                speedStart: (newX * 0.1) + (item.speedStart - item.start),
+                newStart: (newX * 0.1) + (item.newStart - item.start),
+                start: (newX * 0.1),
+                speedEnd: (newX * 0.1) + duration + (item.speedEnd - item.end),
                 newEnd:
-                  newX * 0.1 +
+                  (newX * 0.1) +
                   duration +
                   (item.end - item.newEnd),
                 end:
-                  newX * 0.1 +
+                  (newX * 0.1) +
                   duration,
                   trackX: positions[id].x
               }
@@ -101,107 +116,110 @@ const Track = ({ sourceAndTiming, setSourceAndTiming, selectedElement, setSelect
   const handleResizeStop = (id, e, direction, ref, delta, position) => {
     const newWidth = ref.offsetWidth; //-10px for width of right handler
     const newX = position.x;
+    //rewrite this function, delta gives width and height, 
+    // delta.width is negative or positive depending on shrink or expand
+    //direction always remains left for left, right for right
+    const source = sourceAndTiming.find((item) => item.id === id);
 
-    // Calculate the new duration based on the width
-    let newStart = Math.ceil(0.1 * newX);
-    let newEnd = newStart + newWidth / 10;
-    let isInvalid = false;
-    sourceAndTiming.forEach((source) => {
-      if (source.id === id) {
-        console.log(
-          "<<newend ",
-          newEnd,
-          "new start",
-          newStart,
-          "source start",
-          source.start,
-          "source end ",
-          source.end
-        );
-        newStart = newStart < source.start ? source.start : newStart;
-        newEnd = newEnd > source.end ? source.end : newEnd;
-        // console.log("newend ", newEnd, "newstart", newStart);
+    if(direction === "left"){
+      const diff = source.newStart - (delta.width *0.1);
+        console.log("start", diff, source.speedStart, source.speedEnd, diff, delta, source.newStart);
 
-        if(newStart - source.start < 0 || source.end - newEnd < 0){
-          isInvalid = true;
-          // return;
-        }
+      if(diff < source.speedStart || diff > source.speedEnd){
+        
+        setPositions((prev) => ({
+          ...prev,
+          [id]: { ...prev[id] },
+        }));
+        return;
       }
-    });
-    console.log("<<updated newend ", newEnd, "newstart", newStart);
+      else{
 
-    // if(isInvalid){
-    //   return;
-    // }
-    // if(newEnd > sourceAndTiming[id].end){
-    //   return;
-    // }
-    const newDuration = Math.ceil(newEnd - newStart); // Assuming 10px = 1 second
-    if(newDuration <= 0){
-      return;
-    }
-    const isOverlapping = checkOverlap(
-      { left: newX, right: newX + newWidth },
-      elements,
-      positions,
-      id
-    );
-
-    if (isOverlapping) {
-      // Snap back to the original size and position
-      setPositions((prev) => ({
-        ...prev,
-        [id]: { ...prev[id] },
-      }));
-    } else {
-      if (isInvalid) {
-      // Reset to previous state if resizing goes beyond limits
-      setPositions((prev) => ({
-        ...prev,
-        [id]: { ...prev[id] },
-      }));
-    }
-    else{
-      // Update the size and position
-      // newX = isInvalid ? positions[id].x : newX;
+      
       setPositions((prev) => ({
         ...prev,
         [id]: {
           ...prev[id],
           x: newX,
-          width: Math.ceil(newEnd - newStart) * 10,
+          width: prev[id].width + (delta.width),
         },
       }));
-    }
-      // Update the trackMedia duration
+      const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+        if (item.id === id) {
+          return { ...item, newStart: diff, trackX: newX };
+        }
+        return item;
+      });
+
+      setSourceAndTiming(updatedSourceAndTiming);
+
       setTrackMedia((prev) =>
         prev.map((track) =>
           track.id === id
             ? {
                 ...track,
-                duration: newDuration,
+                duration: Math.ceil(positions[id].width * 0.1),
               }
             : track
         )
       );
-
-      // Update the sourceAndTiming start and end times
-      setSourceAndTiming((prev) =>
-        prev.map((item) => {
-          if (item.id === id) {
-            // const key = String(id);
-            return {
-              ...item,
-              newStart: newStart,
-              newEnd: newEnd,
-              trackX: positions[id].x
-            };
-          } else {
-            return item;
-          }
-        })
-      );
     }
+    }
+    else{
+      const diff = (source.newEnd / source.speed) + (delta.width *0.1);
+        console.log(
+          "end",
+          diff,
+          source.speedStart,
+          source.speedEnd,
+          delta,
+          "new end ",
+          source.newEnd
+        );
+
+      if(diff < source.speedStart || diff > source.speedEnd){
+
+        setPositions((prev) => ({
+          ...prev,
+          [id]: { ...prev[id] },
+        }));
+        return;
+      }
+      else{
+
+      
+      setPositions((prev) => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+        
+          width: prev[id].width + (delta.width),
+        },
+      }));
+      const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+        if (item.id === id) {
+          return { ...item, newEnd: diff };
+        }
+        return item;
+      });
+
+      setSourceAndTiming(updatedSourceAndTiming);
+
+      setTrackMedia((prev) =>
+        prev.map((track) =>
+          track.id === id
+            ? {
+                ...track,
+                duration: Math.ceil(positions[id].width * 0.1),
+              }
+            : track
+        )
+      );
+      }
+    }
+    console.log("width ", newWidth, "delta ", delta, "direction", direction, "x", newX);
+    
+    
   };
 
   const checkOverlap = (newRect, elements, positions, currentId = null) => {
@@ -223,23 +241,12 @@ const Track = ({ sourceAndTiming, setSourceAndTiming, selectedElement, setSelect
 
     let tracks = []
      sourceAndTiming.forEach((source) => {
-      //  if (!trackMedia.some((m) => m.id === source.id)) {
       tracks.push({
              id: source.id,
              src: source.source,
              mediaType: source.mediaType,
-             duration: Number(source.newEnd - source.newStart).toFixed(2),
+             duration: Number(source.newEnd - source.newStart),
            })
-        //  setTrackMedia((prev) => [
-        //    ...prev,
-        //    {
-        //      id: source.id,
-        //      src: source.source,
-        //      mediaType: source.mediaType,
-        //      duration: Number(source.newEnd - source.newStart).toFixed(2),
-        //    },
-        //  ]);
-      //  }
 
        if (!elements.includes(source.id)) {
          setElements((prev) => [...prev, source.id]);
@@ -259,7 +266,49 @@ console.log("split", isSplit,"sourceandtiming is ",sourceAndTiming);
 
      setIsSplit(false);
    }
- }, [sourceAndTiming, isSplit]);
+   if(isSpeedChange){
+    const source = sourceAndTiming.find((item) => item.id === selectedElement);
+    setPositions((prev)=>({
+      ...prev,
+      [selectedElement]: {
+           ...prev[selectedElement],
+           width: Math.ceil((source.newEnd - source.newStart)*10 / source.speed),
+         },
+    }))
+    const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+      if (item.id === selectedElement) {
+        const speedEnd = (Math.ceil(item.end - item.start) / item.speed);
+        return { ...item, speedEnd: item.speedStart + speedEnd };
+      }
+      return item;
+    });
+
+    setSourceAndTiming(updatedSourceAndTiming);
+    setIsSpeedChange(false);
+    console.log("s&t", sourceAndTiming, positions);
+    
+   }
+
+   if(isDeleteMedia){
+    let tracks=[]
+    sourceAndTiming.forEach((source) => {
+      tracks.push({
+             id: source.id,
+             src: source.source,
+             mediaType: source.mediaType,
+             duration: Math.ceil(Number(source.newEnd - source.newStart)),
+           })
+    })
+      setPositions((prev) => {
+        const { [selectedElement]: removed, ...rest } = prev; // Remove the key matching selectedElement
+        return rest;
+      });
+    // setPositions((prev)=>{return prev.every((item)=>item.id !== selectedElement)});
+    setElements((prev)=>{return prev.filter((item)=>item !== selectedElement)});
+    setTrackMedia(tracks);
+    setIsDeleteMedia(false);
+   }
+ }, [sourceAndTiming, isSplit, isDeleteMedia]);
 
   return (
     <div
@@ -296,7 +345,7 @@ console.log("split", isSplit,"sourceandtiming is ",sourceAndTiming);
           <div
             className="track-video"
             style={{
-              width: `${m.duration * 10}px`,
+              width: `${positions[m.id]?.width}px`,
               height: "100%",
               backgroundColor: "rgb(63, 166, 245)",
               borderRadius: "4px",

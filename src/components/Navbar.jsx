@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPhotoFilm, faVideo } from "@fortawesome/free-solid-svg-icons";
+import { faClapperboard, faPhotoFilm, faVideo } from "@fortawesome/free-solid-svg-icons";
 import { navbarObject } from "../utils/MediaEnum";
 import Panel from "./Panel";
 
@@ -23,8 +23,14 @@ const Navbar = () => {
         >
           <FontAwesomeIcon icon={faVideo} size="xl" />
         </button>
+        <button
+          className="navbar-option"
+          onClick={() => setActiveState(navbarObject.video)}
+        >
+          <FontAwesomeIcon icon={faClapperboard} size="xl" />
+        </button>
       </div>
-      <Panel panelType={activeState} />
+      <Panel panelType={activeState}/>
     </div>
   );
 };

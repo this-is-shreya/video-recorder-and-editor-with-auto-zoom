@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import "./App.css";
 import AppContext from "./AppContext";
 import Navbar from "./components/Navbar";
@@ -12,6 +12,9 @@ function App() {
   const [sourceAndTiming, setSourceAndTiming] = useState([]);
   const [currentSourceAndTiming, setCurrentSourceAndTiming] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedElement, setSelectedElement] = useState(null);
+  const [isSpeedChange, setIsSpeedChange] = useState(false);
+
   document.addEventListener("keyup", (e) => {
     if (e.code === "ArrowLeft") {
       if (seekerPosition - 50 <= 0) {
@@ -35,6 +38,10 @@ function App() {
           setCurrentSourceAndTiming: setCurrentSourceAndTiming,
           isPlaying: isPlaying,
           setIsPlaying: setIsPlaying,
+          selectedElement: selectedElement,
+          setSelectedElement: setSelectedElement,
+          isSpeedChange: isSpeedChange,
+          setIsSpeedChange: setIsSpeedChange,
         }}
       >
         <Navbar />

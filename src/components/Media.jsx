@@ -20,13 +20,30 @@ const Media = () => {
     });
   };
   // console.log("files", files);
-  const handleDragStart = (e) => {
-    console.log("all data ", e.target)
-    const videoSrc = e.target.getAttribute("src");
-    e.dataTransfer.setData("text/plain", videoSrc);
-    e.dataTransfer.setData("media-type","video");
-    e.dataTransfer.setData("duration", Math.ceil(e.target.duration));
-  };
+ const handleDragStart = (e) => {
+   const videoElement = e.target;
+
+   // Ensure metadata is loaded before accessing duration
+   if (videoElement.readyState >= 1) {
+     const videoSrc = videoElement.getAttribute("src");
+     e.dataTransfer.setData("text/plain", videoSrc);
+     e.dataTransfer.setData("media-type", "video");
+     e.dataTransfer.setData("duration", Math.ceil(videoElement.duration));
+   } else {
+     // If metadata isn't loaded, listen for it
+     videoElement.addEventListener(
+       "loadedmetadata",
+       () => {
+         const videoSrc = videoElement.getAttribute("src");
+         e.dataTransfer.setData("text/plain", videoSrc);
+         e.dataTransfer.setData("media-type", "video");
+         e.dataTransfer.setData("duration", Math.ceil(videoElement.duration));
+       },
+       { once: true }
+     ); // Ensures the event fires only once
+   }
+ };
+
   return (
     <div className="panel">
       <label className="custom-file-upload">
@@ -42,24 +59,30 @@ const Media = () => {
       <br></br>
       <div className="media-container">
         {files.map((fileObj, index) => (
-          <div
-            key={index}
-            className="media-item"
-            
-          >
+          <div key={index} className="media-item">
             {fileObj.file.type.startsWith("video") && (
               <video
                 src={fileObj.preview}
                 draggable
                 onDragStart={handleDragStart}
+                preload="metadata"
+                onLoadedMetadata={(e) => {
+                  if (e.target.duration === Infinity) {
+                    // Force browser to calculate duration by seeking to the end
+                    e.target.currentTime = Number.MAX_SAFE_INTEGER;
+                    e.target.ontimeupdate = () => {
+                      e.target.ontimeupdate = null;
+                      console.log("Actual Duration:", e.target.duration);
+                      e.target.currentTime = 0; // Reset to the beginning
+                    };
+                  } else {
+                    console.log("Duration:", e.target.duration);
+                  }
+                }}
               />
             )}
             {fileObj.file.type.startsWith("audio") && (
-              <audio
-                src={fileObj.preview}
-                controls
-          
-              />
+              <audio src={fileObj.preview} controls />
             )}
             {fileObj.file.type.startsWith("image") && (
               <img src={fileObj.preview} />

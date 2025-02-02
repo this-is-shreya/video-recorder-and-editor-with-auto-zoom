@@ -1,6 +1,6 @@
 import React from "react";
 
-const Controls = ({ seekerPosition, setSeekerPosition, selectedElement, sourceAndTiming, setSourceAndTiming }) => {
+const Controls = ({ setSeekerPosition }) => {
   const handleClick = (e) => {
     const trackRect = e.target.getBoundingClientRect();
     const x = Math.round(e.clientX - trackRect.left); // Relative x-coordinate

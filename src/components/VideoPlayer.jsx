@@ -16,7 +16,8 @@ const VideoPlayer = () => {
   }
 
   // const key = Object.keys(currentSourceAndTiming[0])[0];
-  const { source, start, end, newStart, newEnd } = currentSourceAndTiming[0];
+  const {selectedElement} = useContext(AppContext)
+  const { source, start, end, newStart, newEnd, borderRadius, speed } = currentSourceAndTiming[0];
   console.log("currentsandt", currentSourceAndTiming);
   
   // Initialize state for position and size from currentSourceAndTiming
@@ -27,7 +28,7 @@ const VideoPlayer = () => {
     currentSourceAndTiming[0].size || { width: 400, height: 225 } // Default to 16:9
   );
 
-  const videoRef = useRef(null); // Reference to the video element
+  const videoPlayerRef = useRef(null); // Reference to the video element
   const lastSeekerPosition = useRef(seekerPosition); // To track the last seeker position
   const lastIsPlaying = useRef(isPlaying); // To track the last isPlaying state
   const hasSetStartTime = useRef(false); // Flag to track if startTime has been set
@@ -45,34 +46,42 @@ const VideoPlayer = () => {
 
   // Control video playback based on `isPlaying` and seeker position
   useEffect(() => {
-    if (videoRef.current) {
+    if (videoPlayerRef.current) {
       const startTime = calculateStartTime();
-
+      videoPlayerRef.current.playbackRate = speed;
       // Set startTime only once when not playing
       if (!hasSetStartTime.current) {
-        console.log("Setting startTime:", Math.floor(startTime));//probably .tofixed would be much better
-        videoRef.current.currentTime = Math.floor(startTime - newStart*0.1);
+        console.log("Setting startTime:", Math.floor(startTime));
+        videoPlayerRef.current.currentTime = Math.floor(startTime - newStart);
         hasSetStartTime.current = true; // Mark start time as set
-        if (isPlaying) videoRef.current.play();
+        if (isPlaying) videoPlayerRef.current.play();
       }
-
+      // if(isPlaying && lastIsPlaying.current && seekerPosition !== lastSeekerPosition.current){
+      //   videoPlayerRef.current.currentTime = Math.floor(startTime - newStart);
+      //   // videoPlayerRef.current.play();
+      // }
       // Control video playback state based on `isPlaying`
       if (isPlaying && !lastIsPlaying.current) {
         console.log("Starting video playback");
-        // videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
+        // videoPlayerRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
 
-        videoRef.current.play().catch((error) => {
+        videoPlayerRef.current.play().catch((error) => {
           console.warn("Playback error:", error);
         });
       } else if (!isPlaying && lastIsPlaying.current) {
         console.log("Pausing video playback");
-        videoRef.current.pause();
+        videoPlayerRef.current.pause();
+        // hasSetStartTime.current = false; // Reset the start time
+
       } 
       if (!videoSource || videoSource !== source) {
         console.log("New video loaded, updating start time");
-        videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
-        if (isPlaying) videoRef.current.play();
+        videoPlayerRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
+        if (isPlaying) videoPlayerRef.current.play();
         setVideoSource(source);
+      }
+      if(!isPlaying){
+        hasSetStartTime.current = false; // Reset the start time
       }
       // Update the last known state of isPlaying
       lastIsPlaying.current = isPlaying;
@@ -82,7 +91,7 @@ const VideoPlayer = () => {
         lastSeekerPosition.current = seekerPosition;
       }
     }
-  }, [isPlaying, seekerPosition, videoRef]); // Re-run when isPlaying or seekerPosition changes
+  }, [isPlaying, seekerPosition, videoPlayerRef]); // Re-run when isPlaying or seekerPosition changes
 
   // Update `currentSourceAndTiming` when size or position changes
   const updateContext = (newPosition, newSize) => {
@@ -118,20 +127,20 @@ const VideoPlayer = () => {
       }}
       style={{
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-        border: "1px solid #ddd",
-        borderRadius: "8px",
         overflow: "hidden",
         backgroundColor: "black", // Fallback color
       }}
+      className={`${selectedElement}-preview`}
     >
       <video
-        ref={videoRef}
+        ref={videoPlayerRef}
         src={source}
         autoPlay={false} // Control autoplay manually
         muted={false}
         style={{
           width: "100%",
           height: "100%",
+          borderRadius: borderRadius+"px",
           objectFit: "cover",
           display: "block",
         }}

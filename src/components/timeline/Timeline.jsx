@@ -7,8 +7,8 @@ import AppContext from "../../AppContext";
 
 const Timeline = () => {
   const intervalRef = useRef(null);
-  const [selectedElement, setSelectedElement] = useState(null);
   const [isSplit, setIsSplit] = useState(false);
+  const [isDeleteMedia, setIsDeleteMedia] = useState(false);
 
   const {
     seekerPosition,
@@ -18,7 +18,8 @@ const Timeline = () => {
     currentSourceAndTiming,
     setCurrentSourceAndTiming,
     isPlaying,
-    setIsPlaying,
+    selectedElement,
+    setSelectedElement
   } = useContext(AppContext);
 
   // const handleButtonClick = () => {
@@ -69,6 +70,7 @@ const handleSplit = () => {
         size: { width: 400, height: 225 },
         mediaType: source.mediaType,
         trackX: source.trackX, // Keep same position
+        
       };
 
       // Second half (remaining part)
@@ -89,7 +91,21 @@ const handleSplit = () => {
 
   setIsSplit(true);
 };
+const handleDeleteTrackMedia = () => {
+  if(!selectedElement) return;
 
+  const updatedSourceAndTiming = sourceAndTiming.filter(
+    (item) => {
+      console.log("item", item, selectedElement);
+      
+      return item.id !== selectedElement}
+  );
+
+  setSourceAndTiming(updatedSourceAndTiming);
+  setIsDeleteMedia(true)
+  console.log("sourceandtiming", sourceAndTiming);
+  
+}
   useEffect(() => {
     setCurrentSourceAndTiming(
       getCurrentSources(sourceAndTiming, seekerPosition)
@@ -100,23 +116,18 @@ const handleSplit = () => {
     <div className="timeline">
       <div>
         <button onClick={handleSplit}>Split</button>
+        <button onClick={handleDeleteTrackMedia}>Delete</button>
       </div>
 
       <Controls
-        seekerPosition={seekerPosition}
         setSeekerPosition={setSeekerPosition}
-        selectedElement={selectedElement}
-        sourceAndTiming={sourceAndTiming}
-        setSourceAndTiming={setSourceAndTiming}
       />
       <Seeker seekerPosition={seekerPosition} />
       <Track
-        sourceAndTiming={sourceAndTiming}
-        setSourceAndTiming={setSourceAndTiming}
-        selectedElement={selectedElement}
-        setSelectedElement={setSelectedElement}
         isSplit={isSplit}
         setIsSplit={setIsSplit}
+        isDeleteMedia={isDeleteMedia}
+        setIsDeleteMedia={setIsDeleteMedia}
          />
     </div>
   );
