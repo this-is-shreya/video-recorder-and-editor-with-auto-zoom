@@ -100,7 +100,6 @@ const handleDeleteTrackMedia = () => {
       
       return item.id !== selectedElement}
   );
-
   setSourceAndTiming(updatedSourceAndTiming);
   setIsDeleteMedia(true)
   console.log("sourceandtiming", sourceAndTiming);
@@ -128,7 +127,7 @@ const handleDeleteTrackMedia = () => {
         setIsSplit={setIsSplit}
         isDeleteMedia={isDeleteMedia}
         setIsDeleteMedia={setIsDeleteMedia}
-         />
+      />
     </div>
   );
 };

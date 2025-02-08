@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import {  useState } from "react";
 import "./App.css";
 import AppContext from "./AppContext";
 import Navbar from "./components/Navbar";
@@ -15,17 +15,6 @@ function App() {
   const [selectedElement, setSelectedElement] = useState(null);
   const [isSpeedChange, setIsSpeedChange] = useState(false);
 
-  document.addEventListener("keyup", (e) => {
-    if (e.code === "ArrowLeft") {
-      if (seekerPosition - 50 <= 0) {
-        setSeekerPosition(0);
-      } else {
-        setSeekerPosition(seekerPosition - 50);
-      }
-    } else if (e.code === "ArrowRight") {
-      setSeekerPosition(seekerPosition + 50);
-    }
-  });
   return (
     <>
       <AppContext.Provider
@@ -65,7 +54,6 @@ function App() {
             <span>time</span>
           </div>
         </div>
-
         <Timeline />
       </AppContext.Provider>
     </>

@@ -8,6 +8,7 @@ const VideoPlayer = () => {
     isPlaying,
     seekerPosition,
     setCurrentSourceAndTiming,
+    selectedElement,
   } = useContext(AppContext);
 
   // Ensure there is valid video data
@@ -15,11 +16,23 @@ const VideoPlayer = () => {
     return null;
   }
 
+  const [currentZoomLevel, setCurrentZoomLevel] = useState(1);
   // const key = Object.keys(currentSourceAndTiming[0])[0];
-  const {selectedElement} = useContext(AppContext)
-  const { source, start, end, newStart, newEnd, borderRadius, speed } = currentSourceAndTiming[0];
+  const {
+    source,
+    start,
+    end,
+    newStart,
+    newEnd,
+    borderRadius,
+    speed,
+    zoomCenter,
+    zoomStart,
+    zoomEnd,
+    zoomLevel,
+  } = currentSourceAndTiming[0];
   console.log("currentsandt", currentSourceAndTiming);
-  
+  const zoomDuration = zoomStart === null ? 0 : zoomEnd - zoomStart;
   // Initialize state for position and size from currentSourceAndTiming
   const [position, setPosition] = useState(
     currentSourceAndTiming[0].position || { x: 0, y: 0 }
@@ -38,10 +51,20 @@ const VideoPlayer = () => {
     const startTime = Math.max(seekerPosition * 0.1 - start, 0); // Ensure it's positive
     console.log(
       "starttimefromvideoplayer",
-      startTime, seekerPosition, newStart, start
+      startTime,
+      seekerPosition,
+      newStart,
+      start
     );
-    
+
     return startTime;
+  };
+  // Update `currentSourceAndTiming` when size or position changes
+  const updateContext = (newPosition, newSize) => {
+    const updatedData = { ...currentSourceAndTiming };
+    updatedData[0].position = newPosition;
+    updatedData[0].size = newSize;
+    setCurrentSourceAndTiming(updatedData); // Update the context
   };
 
   // Control video playback based on `isPlaying` and seeker position
@@ -72,15 +95,16 @@ const VideoPlayer = () => {
         console.log("Pausing video playback");
         videoPlayerRef.current.pause();
         // hasSetStartTime.current = false; // Reset the start time
-
-      } 
+      }
       if (!videoSource || videoSource !== source) {
         console.log("New video loaded, updating start time");
-        videoPlayerRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
+        videoPlayerRef.current.currentTime = Math.floor(
+          startTime - newStart * 0.1
+        );
         if (isPlaying) videoPlayerRef.current.play();
         setVideoSource(source);
       }
-      if(!isPlaying){
+      if (!isPlaying) {
         hasSetStartTime.current = false; // Reset the start time
       }
       // Update the last known state of isPlaying
@@ -93,13 +117,28 @@ const VideoPlayer = () => {
     }
   }, [isPlaying, seekerPosition, videoPlayerRef]); // Re-run when isPlaying or seekerPosition changes
 
-  // Update `currentSourceAndTiming` when size or position changes
-  const updateContext = (newPosition, newSize) => {
-    const updatedData = { ...currentSourceAndTiming };
-    updatedData[0].position = newPosition;
-    updatedData[0].size = newSize;
-    setCurrentSourceAndTiming(updatedData); // Update the context
-  };
+  useEffect(() => {
+    const video = videoPlayerRef.current;
+    if (!video) return;
+
+    const handleTimeUpdate = () => {
+      const currentTime = Math.ceil(seekerPosition*0.1);
+      console.log("currenttime", currentTime, zoomStart, zoomEnd);
+      
+      if (zoomStart !== null && zoomEnd !== null) {
+        if ((currentTime) >= zoomStart && (currentTime) <= zoomEnd) {
+          // Zoom in
+          setCurrentZoomLevel(zoomLevel);
+        } else {
+          // Zoom out smoothly after zoomEnd
+          setCurrentZoomLevel(1);
+        }
+      }
+    };
+
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    return () => video.removeEventListener("timeupdate", handleTimeUpdate);
+  }, [zoomStart, zoomEnd, zoomLevel, seekerPosition]);
 
   return (
     <Rnd
@@ -140,9 +179,12 @@ const VideoPlayer = () => {
         style={{
           width: "100%",
           height: "100%",
-          borderRadius: borderRadius+"px",
-          objectFit: "cover",
+          borderRadius: borderRadius + "px",
+          objectFit: "contain",
           display: "block",
+          transition: `transform ${0.3}s ease-in-out`,
+          transform: isPlaying ? `scale(${currentZoomLevel}, ${currentZoomLevel})` : '',
+          transformOrigin: isPlaying ? `${zoomCenter.x * 100}% ${zoomCenter.y * 100}%` : '', // Set origin
         }}
       ></video>
     </Rnd>

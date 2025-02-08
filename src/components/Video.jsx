@@ -3,10 +3,23 @@ import AppContext from "../AppContext";
 import { extractAudioFromBlobURL } from "../utils/extractAndDownloadAudio";
 
 const Video = () => {
-  const { selectedElement, sourceAndTiming, setSourceAndTiming, setIsSpeedChange } =
-    useContext(AppContext);
+  const {
+    selectedElement,
+    sourceAndTiming,
+    setSourceAndTiming,
+    setIsSpeedChange,
+    seekerPosition,
+  } = useContext(AppContext);
+  const [currentElement, setCurrentElement] = useState(
+    sourceAndTiming.find((item) => item.id === selectedElement)
+  );
   const [borderRadius, setBorderRadius] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const [zoomCenter, setZoomCenter] = useState({ x: 0, y: 0 });
+  const [zoomStart, setZoomStart] = useState(currentElement?.zoomStart);
+  const [zoomEnd, setZoomEnd] = useState(currentElement?.zoomEnd);
+  const [zoomLevel, setZoomLevel] = useState(currentElement?.zoomLevel);
+  const [clickPosition, setClickPosition] = useState(null); // Stores red dot position
 
   const changeRoundness = (e) => {
     if (!selectedElement) return;
@@ -39,6 +52,93 @@ const Video = () => {
 
     setSourceAndTiming(updatedSourceAndTiming);
   };
+  const handlePreviewClick = (e) => {
+    const previewRect = e.target.getBoundingClientRect();
+    const clickX = e.clientX - previewRect.left; // X coordinate of the click
+    const clickY = e.clientY - previewRect.top; // Y coordinate of the click
+
+    // Calculate zoom center as a percentage of the preview size
+    const centerX = clickX / previewRect.width;
+    const centerY = clickY / previewRect.height;
+
+    setZoomCenter({ x: centerX, y: centerY });
+    setClickPosition({ x: clickX, y: clickY }); // Store position for red dot
+  };
+  const addZoom = () => {
+    console.log("adding zoom for ", zoomStart, zoomEnd, zoomEnd <= zoomStart);
+    if (zoomEnd == null || zoomEnd <= zoomStart) {
+      return;
+    }
+    console.log(
+      "adding zoom for ",
+      zoomStart,
+      zoomEnd,
+      currentElement.newStart,
+      currentElement.newEnd
+    );
+
+    if (
+      zoomStart < currentElement.newStart ||
+      zoomEnd > currentElement.newEnd
+    ) {
+      return;
+    }
+    console.log(
+      "adding zoom for ",
+      zoomStart,
+      zoomEnd,
+      currentElement.newStart,
+      currentElement.newEnd
+    );
+
+    const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+      if (item.id === selectedElement) {
+        return {
+          ...item,
+          zoomCenter: zoomCenter,
+          zoomStart: Number(zoomStart),
+          zoomEnd: Number(zoomEnd),
+          zoomLevel: zoomLevel,
+        };
+      }
+      return item;
+    });
+
+    setSourceAndTiming([...updatedSourceAndTiming]);
+     setCurrentElement({
+       ...currentElement,
+       zoomStart: Number(zoomStart),
+       zoomEnd: Number(zoomEnd),
+       zoomLevel: zoomLevel,
+     });
+  };
+  const resetZoom = () => {
+    setZoomCenter({ x: 0, y: 0 });
+    setZoomStart(null);
+    setZoomEnd(null);
+    setZoomLevel("1");
+    const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+      if (item.id === selectedElement) {
+        return {
+          ...item,
+          zoomCenter: zoomCenter,
+          zoomStart: zoomStart,
+          zoomEnd: zoomEnd,
+          zoomLevel: zoomLevel,
+        };
+      }
+      return item;
+    });
+
+    setSourceAndTiming([...updatedSourceAndTiming]);
+     setCurrentElement({
+       ...currentElement,
+       zoomStart: null,
+       zoomEnd: null,
+       zoomLevel: "1",
+     });
+  };
+
   useEffect(() => {
     if (selectedElement) {
       const selectedItem = sourceAndTiming.find(
@@ -48,6 +148,12 @@ const Video = () => {
         setBorderRadius(selectedItem.borderRadius || 0);
       }
     }
+  }, [selectedElement, sourceAndTiming]);
+
+  useEffect(() => {
+    setCurrentElement(
+      sourceAndTiming.find((item) => item.id === selectedElement)
+    );
   }, [selectedElement, sourceAndTiming]);
 
   return (
@@ -89,6 +195,75 @@ const Video = () => {
         >
           Extract Audio
         </button>
+        <label>Add Zoom:</label>
+        <input
+          name="zoom-start"
+          type="number"
+          value={zoomStart}
+          min={Math.ceil(currentElement?.newStart)}
+          max={Math.ceil(currentElement?.newEnd)}
+          step={1}
+          onChange={(e) => setZoomStart(Number(e.target.value))}
+        ></input>
+        <input
+          name="zoom-end"
+          type="number"
+          value={zoomEnd}
+          min={Math.ceil(currentElement?.newStart)}
+          max={Math.ceil(currentElement?.newEnd)}
+          step={1}
+          onChange={(e) => setZoomEnd(Number(e.target.value))}
+        ></input>
+        <input
+          name="zoom-level"
+          type="range"
+          min={1}
+          max={3}
+          step={0.1}
+          value={zoomLevel}
+          onChange={(e) => setZoomLevel(e.target.value)}
+        />
+        <label>{zoomLevel}</label>
+        <div
+          onClick={handlePreviewClick}
+          style={{
+            width: "200px", // Preview size
+            height: "112px", // Aspect ratio of 16:9
+            marginRight: "10px",
+            border: "2px solid #ccc",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <video
+            src={currentElement?.source}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              position: "absolute",
+              left: 0,
+              top: 0,
+            }}
+            muted
+          ></video>
+          {clickPosition && (
+            <div
+              style={{
+                position: "absolute",
+                top: clickPosition.y - 5,
+                left: clickPosition.x - 5,
+                width: "10px",
+                height: "10px",
+                backgroundColor: "red",
+                borderRadius: "50%",
+                pointerEvents: "none",
+              }}
+            />
+          )}
+        </div>
+        <button onClick={addZoom}>Apply</button>
+        <button onClick={resetZoom}>Reset</button>
       </div>
     </div>
   );
