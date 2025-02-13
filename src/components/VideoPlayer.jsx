@@ -145,22 +145,24 @@ const VideoPlayer = () => {
     <Rnd
       size={{ width: size.width, height: size.height }}
       position={{ x: position.x, y: position.y }}
-      bounds=".video-player" // Constrain within the parent container
-      lockAspectRatio // Maintain aspect ratio during resizing
+      bounds=".video-player"
       onDragStop={(e, data) => {
         const newPosition = { x: data.x, y: data.y };
         setPosition(newPosition);
         updateContext(newPosition, size);
       }}
       onResizeStop={(e, direction, ref, delta, _position) => {
-        const newSize = {
-          width: ref.offsetWidth,
-          height: ref.offsetHeight,
-        };
-        const newPosition = {
-          x: _position.x,
-          y: _position.y,
-        };
+        let newWidth = ref.offsetWidth;
+        let newHeight = ref.offsetHeight;
+
+        if (borderRadius >= 50) {
+          // Force a square for circular shape
+          newWidth = newHeight = Math.min(newWidth, newHeight);
+        }
+
+        const newSize = { width: newWidth, height: newHeight };
+        const newPosition = { x: _position.x, y: _position.y };
+
         setSize(newSize);
         setPosition(newPosition);
         updateContext(newPosition, newSize);
@@ -168,30 +170,26 @@ const VideoPlayer = () => {
       style={{
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
         overflow: "hidden",
-        backgroundColor: "black", // Fallback color
+        backgroundColor: "black",
       }}
       className={`${selectedElement}-preview`}
     >
       <video
         ref={videoRef}
         src={source}
-        autoPlay={false} // Control autoplay manually
+        autoPlay={false}
         muted={false}
         style={{
           width: "100%",
           height: "100%",
-          borderRadius: borderRadius + "px",
-          objectFit: "contain",
+          objectFit: "cover",
           display: "block",
-          transition: `transform ${0.3}s ease-in-out`,
-          transform: isPlaying
-            ? `scale(${currentZoomLevel}, ${currentZoomLevel})`
-            : "",
-          transformOrigin: isPlaying
-            ? `${zoomCenter?.x * 100}% ${zoomCenter?.y * 100}%`
-            : "", // Set origin
+          transition: "border-radius 0.3s ease-in-out",
+          borderRadius: `${(borderRadius / 100) * size.height}px / ${
+            (borderRadius / 100) * size.width
+          }px`, // Ensures proper rounding
         }}
-      ></video>
+      />
     </Rnd>
   );
 };

@@ -59,7 +59,7 @@ function App() {
         <Navbar />
         <div className="video-preview">
           <div className="video-player">
-            <VideoPlayer/>
+            <VideoPlayer />
           </div>
           <div className="video-player-controls">
             <span>{currentTime}</span>
