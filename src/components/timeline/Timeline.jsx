@@ -19,7 +19,9 @@ const Timeline = () => {
     setCurrentSourceAndTiming,
     isPlaying,
     selectedElement,
-    setSelectedElement
+    setSelectedElement,
+    maxTime,
+    convertToFormattedTime,
   } = useContext(AppContext);
 
   // const handleButtonClick = () => {
@@ -36,6 +38,12 @@ const Timeline = () => {
     }
     // Play the playback
     intervalRef.current = setInterval(() => {
+      const time = convertToFormattedTime(seekerPosition * 0.1);
+      if (time >= maxTime) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+        return;
+      }
       setSeekerPosition((prevPosition) => {
         const newPosition = prevPosition + 10;
         // console.log("New seeker position:", newPosition);
@@ -47,64 +55,58 @@ const Timeline = () => {
   // return !prevIsPlaying; // Toggle isPlaying state
   // });
   // };
-const handleSplit = () => {
-  if (selectedElement === null) return;
+  const handleSplit = () => {
+    if (selectedElement === null) return;
 
-  let newSources = [];
+    let newSources = [];
 
-  sourceAndTiming.forEach((source) => {
-    if (
-      source.id === selectedElement &&
-      seekerPosition * 0.1 >= source.newStart &&
-      seekerPosition * 0.1 <= source.newEnd
-    ) {
-      // First half (new split segment)
-      const newSource = {
-        id: Date.now(),
-        source: source.source,
-        start: source.newStart,
-        newStart: source.newStart,
-        end: seekerPosition * 0.1,
-        newEnd: seekerPosition * 0.1,
-        position: { x: 0, y: 0 },
-        size: { width: 400, height: 225 },
-        mediaType: source.mediaType,
-        trackX: source.trackX, // Keep same position
-        
-      };
+    sourceAndTiming.forEach((source) => {
+      if (
+        source.id === selectedElement &&
+        seekerPosition * 0.1 >= source.newStart &&
+        seekerPosition * 0.1 <= source.newEnd
+      ) {
+        // Second half (new split segment)
+        const newSource = {
+          ...source,
+          id: Date.now(),
+          start: seekerPosition * 0.1 + 1,
+          newStart: seekerPosition * 0.1 + 1,
+          speedStart: seekerPosition * 0.1 + 1,
+          trackX: seekerPosition,
+        };
 
-      // Second half (remaining part)
-      const updatedSource = {
-        ...source,
-        newStart: seekerPosition * 0.1,
-        start: seekerPosition * 0.1,
-        trackX: seekerPosition, // Move right on the track
-      };
+        // First half
+        const updatedSource = {
+          ...source,
+          speedEnd: seekerPosition * 0.1, //it's a special case, instead of newEnd I'm using seekerPosition
+          newEnd: seekerPosition * 0.1,
+          end: seekerPosition * 0.1,
+        };
+        console.log("new sources are ", newSource, updatedSource);
 
-      newSources.push(newSource, updatedSource);
-    } else {
-      newSources.push(source);
-    }
-  });
+        newSources.push(newSource, updatedSource);
+      } else {
+        newSources.push(source);
+      }
+    });
 
-  setSourceAndTiming(newSources);
+    setSourceAndTiming(newSources);
 
-  setIsSplit(true);
-};
-const handleDeleteTrackMedia = () => {
-  if(!selectedElement) return;
+    setIsSplit(true);
+  };
+  const handleDeleteTrackMedia = () => {
+    if (!selectedElement) return;
 
-  const updatedSourceAndTiming = sourceAndTiming.filter(
-    (item) => {
+    const updatedSourceAndTiming = sourceAndTiming.filter((item) => {
       console.log("item", item, selectedElement);
-      
-      return item.id !== selectedElement}
-  );
-  setSourceAndTiming(updatedSourceAndTiming);
-  setIsDeleteMedia(true)
-  console.log("sourceandtiming", sourceAndTiming);
-  
-}
+
+      return item.id !== selectedElement;
+    });
+    setSourceAndTiming(updatedSourceAndTiming);
+    setIsDeleteMedia(true);
+    console.log("sourceandtiming", sourceAndTiming);
+  };
   useEffect(() => {
     setCurrentSourceAndTiming(
       getCurrentSources(sourceAndTiming, seekerPosition)
@@ -118,9 +120,7 @@ const handleDeleteTrackMedia = () => {
         <button onClick={handleDeleteTrackMedia}>Delete</button>
       </div>
 
-      <Controls
-        setSeekerPosition={setSeekerPosition}
-      />
+      <Controls setSeekerPosition={setSeekerPosition} />
       <Seeker seekerPosition={seekerPosition} />
       <Track
         isSplit={isSplit}
@@ -128,6 +128,12 @@ const handleDeleteTrackMedia = () => {
         isDeleteMedia={isDeleteMedia}
         setIsDeleteMedia={setIsDeleteMedia}
       />
+      {/* <Track
+        isSplit={isSplit}
+        setIsSplit={setIsSplit}
+        isDeleteMedia={isDeleteMedia}
+        setIsDeleteMedia={setIsDeleteMedia}
+      /> */}
     </div>
   );
 };

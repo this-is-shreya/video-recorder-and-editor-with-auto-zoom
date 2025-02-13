@@ -9,6 +9,7 @@ const VideoPlayer = () => {
     seekerPosition,
     setCurrentSourceAndTiming,
     selectedElement,
+    videoPlayerRef,
   } = useContext(AppContext);
 
   // Ensure there is valid video data
@@ -31,7 +32,7 @@ const VideoPlayer = () => {
     zoomEnd,
     zoomLevel,
   } = currentSourceAndTiming[0];
-  console.log("currentsandt", currentSourceAndTiming);
+  // console.log("currentsandt", currentSourceAndTiming);
   const zoomDuration = zoomStart === null ? 0 : zoomEnd - zoomStart;
   // Initialize state for position and size from currentSourceAndTiming
   const [position, setPosition] = useState(
@@ -41,21 +42,21 @@ const VideoPlayer = () => {
     currentSourceAndTiming[0].size || { width: 400, height: 225 } // Default to 16:9
   );
 
-  const videoPlayerRef = useRef(null); // Reference to the video element
+  const videoRef = useRef(null); // Reference to the video element
   const lastSeekerPosition = useRef(seekerPosition); // To track the last seeker position
   const lastIsPlaying = useRef(isPlaying); // To track the last isPlaying state
   const hasSetStartTime = useRef(false); // Flag to track if startTime has been set
   const [videoSource, setVideoSource] = useState(null); // To track video source changes
   // Calculate video start time based on seeker's position
   const calculateStartTime = () => {
-    const startTime = Math.max(seekerPosition * 0.1 - start, 0); // Ensure it's positive
-    console.log(
-      "starttimefromvideoplayer",
-      startTime,
-      seekerPosition,
-      newStart,
-      start
-    );
+    const startTime = Math.max(seekerPosition * 0.1 - newStart, 0); // Ensure it's positive
+    // console.log(
+    //   "starttimefromvideoplayer",
+    //   startTime,
+    //   seekerPosition,
+    //   newStart,
+    //   start
+    // );
 
     return startTime;
   };
@@ -69,39 +70,39 @@ const VideoPlayer = () => {
 
   // Control video playback based on `isPlaying` and seeker position
   useEffect(() => {
-    if (videoPlayerRef.current) {
+    console.log("video players: ", currentSourceAndTiming);
+    
+    if (videoRef.current) {
       const startTime = calculateStartTime();
-      videoPlayerRef.current.playbackRate = speed;
+      videoRef.current.playbackRate = speed;
       // Set startTime only once when not playing
       if (!hasSetStartTime.current) {
-        console.log("Setting startTime:", Math.floor(startTime));
-        videoPlayerRef.current.currentTime = Math.floor(startTime - newStart);
+        // console.log("Setting startTime:", Math.floor(startTime));
+        videoRef.current.currentTime = Math.max(startTime, 0);
         hasSetStartTime.current = true; // Mark start time as set
-        if (isPlaying) videoPlayerRef.current.play();
+        if (isPlaying) videoRef.current.play();
       }
       // if(isPlaying && lastIsPlaying.current && seekerPosition !== lastSeekerPosition.current){
-      //   videoPlayerRef.current.currentTime = Math.floor(startTime - newStart);
-      //   // videoPlayerRef.current.play();
+      //   videoRef.current.currentTime = Math.floor(startTime - newStart);
+      //   // videoRef.current.play();
       // }
       // Control video playback state based on `isPlaying`
       if (isPlaying && !lastIsPlaying.current) {
-        console.log("Starting video playback");
-        // videoPlayerRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
+        // console.log("Starting video playback");
+        // videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
 
-        videoPlayerRef.current.play().catch((error) => {
+        videoRef.current.play().catch((error) => {
           console.warn("Playback error:", error);
         });
       } else if (!isPlaying && lastIsPlaying.current) {
-        console.log("Pausing video playback");
-        videoPlayerRef.current.pause();
+        // console.log("Pausing video playback");
+        videoRef.current.pause();
         // hasSetStartTime.current = false; // Reset the start time
       }
       if (!videoSource || videoSource !== source) {
         console.log("New video loaded, updating start time");
-        videoPlayerRef.current.currentTime = Math.floor(
-          startTime - newStart * 0.1
-        );
-        if (isPlaying) videoPlayerRef.current.play();
+        videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
+        if (isPlaying) videoRef.current.play();
         setVideoSource(source);
       }
       if (!isPlaying) {
@@ -115,18 +116,18 @@ const VideoPlayer = () => {
         lastSeekerPosition.current = seekerPosition;
       }
     }
-  }, [isPlaying, seekerPosition, videoPlayerRef]); // Re-run when isPlaying or seekerPosition changes
+  }, [isPlaying, seekerPosition, videoRef]); // Re-run when isPlaying or seekerPosition changes
 
   useEffect(() => {
-    const video = videoPlayerRef.current;
+    const video = videoRef.current;
     if (!video) return;
 
     const handleTimeUpdate = () => {
-      const currentTime = Math.ceil(seekerPosition*0.1);
-      console.log("currenttime", currentTime, zoomStart, zoomEnd);
-      
+      const currentTime = Math.ceil(seekerPosition * 0.1);
+      // console.log("currenttime", currentTime, zoomStart, zoomEnd);
+
       if (zoomStart !== null && zoomEnd !== null) {
-        if ((currentTime) >= zoomStart && (currentTime) <= zoomEnd) {
+        if (currentTime >= zoomStart && currentTime <= zoomEnd) {
           // Zoom in
           setCurrentZoomLevel(zoomLevel);
         } else {
@@ -172,7 +173,7 @@ const VideoPlayer = () => {
       className={`${selectedElement}-preview`}
     >
       <video
-        ref={videoPlayerRef}
+        ref={videoRef}
         src={source}
         autoPlay={false} // Control autoplay manually
         muted={false}
@@ -183,8 +184,12 @@ const VideoPlayer = () => {
           objectFit: "contain",
           display: "block",
           transition: `transform ${0.3}s ease-in-out`,
-          transform: isPlaying ? `scale(${currentZoomLevel}, ${currentZoomLevel})` : '',
-          transformOrigin: isPlaying ? `${zoomCenter.x * 100}% ${zoomCenter.y * 100}%` : '', // Set origin
+          transform: isPlaying
+            ? `scale(${currentZoomLevel}, ${currentZoomLevel})`
+            : "",
+          transformOrigin: isPlaying
+            ? `${zoomCenter?.x * 100}% ${zoomCenter?.y * 100}%`
+            : "", // Set origin
         }}
       ></video>
     </Rnd>

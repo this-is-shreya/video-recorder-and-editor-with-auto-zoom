@@ -200,8 +200,8 @@ const Video = () => {
           name="zoom-start"
           type="number"
           value={zoomStart}
-          min={Math.ceil(currentElement?.newStart)}
-          max={Math.ceil(currentElement?.newEnd)}
+          min={currentElement ? Math.ceil(currentElement?.newStart) : 0}
+          max={currentElement ? Math.ceil(currentElement?.newEnd) : 0}
           step={1}
           onChange={(e) => setZoomStart(Number(e.target.value))}
         ></input>
@@ -209,8 +209,8 @@ const Video = () => {
           name="zoom-end"
           type="number"
           value={zoomEnd}
-          min={Math.ceil(currentElement?.newStart)}
-          max={Math.ceil(currentElement?.newEnd)}
+          min={currentElement ? Math.ceil(currentElement?.newStart) : 0}
+          max={currentElement ? Math.ceil(currentElement?.newEnd) : 0}
           step={1}
           onChange={(e) => setZoomEnd(Number(e.target.value))}
         ></input>

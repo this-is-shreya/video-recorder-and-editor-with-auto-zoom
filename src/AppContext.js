@@ -13,6 +13,10 @@ const AppContext = createContext({
   setSelectedElement: () => {},
   isSpeedChange: false,
   setIsSpeedChange: () => {},
+  maxTime: "00:00:00",
+  setMaxTime: () => {},
+  convertToFormattedTime: () => {},
+  videoPlayerRef: null,
 });
 
 export default AppContext;
