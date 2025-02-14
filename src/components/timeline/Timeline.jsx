@@ -74,6 +74,10 @@ const Timeline = () => {
           newStart: seekerPosition * 0.1 + 1,
           speedStart: seekerPosition * 0.1 + 1,
           trackX: seekerPosition,
+          zoomCenter: { x: 0, y: 0 },
+          zoomStart: null,
+          zoomDuration: null,
+          zoomLevel: 1,
         };
 
         // First half
@@ -82,6 +86,10 @@ const Timeline = () => {
           speedEnd: seekerPosition * 0.1, //it's a special case, instead of newEnd I'm using seekerPosition
           newEnd: seekerPosition * 0.1,
           end: seekerPosition * 0.1,
+          zoomCenter: { x: 0, y: 0 },
+          zoomStart: null,
+          zoomDuration: null,
+          zoomLevel: 1
         };
         console.log("new sources are ", newSource, updatedSource);
 

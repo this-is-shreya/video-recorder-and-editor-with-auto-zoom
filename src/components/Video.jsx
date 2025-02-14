@@ -17,8 +17,10 @@ const Video = () => {
   const [speed, setSpeed] = useState(1);
   const [zoomCenter, setZoomCenter] = useState({ x: 0, y: 0 });
   const [zoomStart, setZoomStart] = useState(currentElement?.zoomStart);
-  const [zoomEnd, setZoomEnd] = useState(currentElement?.zoomEnd);
-  const [zoomLevel, setZoomLevel] = useState(currentElement?.zoomLevel);
+  const [zoomDuration, setzoomDuration] = useState(
+    currentElement?.zoomDuration
+  );
+  const [zoomLevel, setZoomLevel] = useState(currentElement ? currentElement?.zoomLevel : 1);
   const [clickPosition, setClickPosition] = useState(null); // Stores red dot position
 
   const changeRoundness = (e) => {
@@ -65,28 +67,33 @@ const Video = () => {
     setClickPosition({ x: clickX, y: clickY }); // Store position for red dot
   };
   const addZoom = () => {
-    console.log("adding zoom for ", zoomStart, zoomEnd, zoomEnd <= zoomStart);
-    if (zoomEnd == null || zoomEnd <= zoomStart) {
+    console.log(
+      "adding zoom for ",
+      zoomStart,
+      zoomDuration,
+      zoomDuration <= zoomStart
+    );
+    if (zoomDuration == null) {
       return;
     }
     console.log(
       "adding zoom for ",
       zoomStart,
-      zoomEnd,
+      zoomDuration,
       currentElement.newStart,
       currentElement.newEnd
     );
 
     if (
       zoomStart < currentElement.newStart ||
-      zoomEnd > currentElement.newEnd
+      zoomDuration + zoomStart > currentElement.newEnd
     ) {
       return;
     }
     console.log(
       "adding zoom for ",
       zoomStart,
-      zoomEnd,
+      zoomDuration,
       currentElement.newStart,
       currentElement.newEnd
     );
@@ -96,8 +103,11 @@ const Video = () => {
         return {
           ...item,
           zoomCenter: zoomCenter,
-          zoomStart: Number(zoomStart),
-          zoomEnd: Number(zoomEnd),
+          zoomStart: Math.ceil(Number(zoomStart - item.newStart)),
+          zoomDuration:
+            Number(zoomDuration) > item.newEnd
+              ? item.newEnd
+              : Number(zoomDuration),
           zoomLevel: zoomLevel,
         };
       }
@@ -105,17 +115,17 @@ const Video = () => {
     });
 
     setSourceAndTiming([...updatedSourceAndTiming]);
-     setCurrentElement({
-       ...currentElement,
-       zoomStart: Number(zoomStart),
-       zoomEnd: Number(zoomEnd),
-       zoomLevel: zoomLevel,
-     });
+    setCurrentElement({
+      ...currentElement,
+      zoomStart: Number(zoomStart),
+      zoomDuration: Number(zoomDuration),
+      zoomLevel: zoomLevel,
+    });
   };
   const resetZoom = () => {
     setZoomCenter({ x: 0, y: 0 });
     setZoomStart(null);
-    setZoomEnd(null);
+    setzoomDuration(null);
     setZoomLevel("1");
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
       if (item.id === selectedElement) {
@@ -123,7 +133,7 @@ const Video = () => {
           ...item,
           zoomCenter: zoomCenter,
           zoomStart: zoomStart,
-          zoomEnd: zoomEnd,
+          zoomDuration: zoomDuration,
           zoomLevel: zoomLevel,
         };
       }
@@ -131,12 +141,12 @@ const Video = () => {
     });
 
     setSourceAndTiming([...updatedSourceAndTiming]);
-     setCurrentElement({
-       ...currentElement,
-       zoomStart: null,
-       zoomEnd: null,
-       zoomLevel: "1",
-     });
+    setCurrentElement({
+      ...currentElement,
+      zoomStart: null,
+      zoomDuration: null,
+      zoomLevel: "1",
+    });
   };
 
   useEffect(() => {
@@ -146,6 +156,10 @@ const Video = () => {
       );
       if (selectedItem) {
         setBorderRadius(selectedItem.borderRadius || 0);
+        setZoomLevel(selectedItem.zoomLevel)
+        setZoomCenter(selectedItem.zoomCenter)
+        setZoomStart(selectedItem.zoomStart ? Math.floor(selectedItem.zoomStart) : Math.floor(selectedItem.newStart))
+        setzoomDuration(selectedItem.zoomDuration ? selectedItem.zoomDuration : 0)
       }
     }
   }, [selectedElement, sourceAndTiming]);
@@ -199,20 +213,24 @@ const Video = () => {
         <input
           name="zoom-start"
           type="number"
-          value={zoomStart}
-          min={currentElement ? Math.ceil(currentElement?.newStart) : 0}
-          max={currentElement ? Math.ceil(currentElement?.newEnd) : 0}
+          value={
+            isNaN(zoomStart) ? Math.floor(currentElement?.newStart) : zoomStart
+          }
+          min={currentElement ? Math.floor(currentElement?.newStart) : 0}
+          max={currentElement ? Math.floor(currentElement?.newEnd - 1) : 0}
           step={1}
           onChange={(e) => setZoomStart(Number(e.target.value))}
         ></input>
         <input
           name="zoom-end"
-          type="number"
-          value={zoomEnd}
-          min={currentElement ? Math.ceil(currentElement?.newStart) : 0}
-          max={currentElement ? Math.ceil(currentElement?.newEnd) : 0}
+          type="range"
+          value={zoomDuration}
+          min={0}
+          max={
+            currentElement ? Math.floor(currentElement?.newEnd - zoomStart) : 0
+          }
           step={1}
-          onChange={(e) => setZoomEnd(Number(e.target.value))}
+          onChange={(e) => setzoomDuration(Number(e.target.value))}
         ></input>
         <input
           name="zoom-level"
@@ -220,10 +238,10 @@ const Video = () => {
           min={1}
           max={3}
           step={0.1}
-          value={zoomLevel}
+          value={isNaN(zoomLevel) ? 1 : zoomLevel}
           onChange={(e) => setZoomLevel(e.target.value)}
         />
-        <label>{zoomLevel}</label>
+        <label>{isNaN(zoomLevel) ? 1 : zoomLevel}</label>
         <div
           onClick={handlePreviewClick}
           style={{

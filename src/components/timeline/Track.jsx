@@ -61,14 +61,10 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
           trackX: x,
           mediaType: mediaType,
           borderRadius: "0",
-          speed: 1,
+          speed: 1, //don't add anything zoom related on drop, as I don't want
+          //it to reset every time you change tracks
         },
       ]);
-
-      const time = convertToFormattedTime(x * 0.1 + Number(duration));
-      if (time > maxTime) {
-        setMaxTime(time);
-      }
     }
   };
 
@@ -114,7 +110,7 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
               speedEnd: newX * 0.1 + duration + (item.speedEnd - item.end),
               newEnd: newX * 0.1 + duration + (item.end - item.newEnd),
               end: newX * 0.1 + duration,
-              trackX: positions[id].x,
+              trackX: newX,
             };
           } else {
             return item;
@@ -161,7 +157,15 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
         }));
         const updatedSourceAndTiming = sourceAndTiming.map((item) => {
           if (item.id === id) {
-            return { ...item, newStart: diff, trackX: newX };
+            return {
+              ...item,
+              newStart: diff,
+              trackX: newX,
+              zoomCenter: { x: 0, y: 0 },
+              zoomStart: null,
+              zoomDuration: null,
+              zoomLevel: 1,
+            };
           }
           return item;
         });
@@ -208,7 +212,14 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
         }));
         const updatedSourceAndTiming = sourceAndTiming.map((item) => {
           if (item.id === id) {
-            return { ...item, newEnd: diff };
+            return {
+              ...item,
+              newEnd: diff,
+              zoomCenter: { x: 0, y: 0 },
+              zoomStart: null,
+              zoomDuration: null,
+              zoomLevel: 1,
+            };
           }
           return item;
         });
@@ -301,7 +312,14 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
       const updatedSourceAndTiming = sourceAndTiming.map((item) => {
         if (item.id === selectedElement) {
           const speedEnd = Math.ceil(item.end - item.start) / item.speed;
-          return { ...item, speedEnd: item.speedStart + speedEnd };
+          return {
+            ...item,
+            speedEnd: item.speedStart + speedEnd,
+            zoomCenter: { x: 0, y: 0 },
+            zoomStart: null,
+            zoomDuration: null,
+            zoomLevel: 1,
+          };
         }
         return item;
       });
@@ -332,6 +350,13 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
       setTrackMedia(tracks);
       setIsDeleteMedia(false);
     }
+
+    const maxNewEnd = sourceAndTiming.reduce(
+      (max, obj) => Math.max(max, obj.newEnd),
+      0
+    );
+    setMaxTime(convertToFormattedTime(maxNewEnd))
+
   }, [sourceAndTiming, isSplit, isDeleteMedia]);
 
   return (
