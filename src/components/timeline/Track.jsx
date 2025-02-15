@@ -57,12 +57,16 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
           newEnd: x * 0.1 + Number(duration),
           speedEnd: x * 0.1 + Number(duration),
           position: { x: 0, y: 0 },
-          size: { width: 400, height: 225 },
+          size: { width: "40vw", height: "22.5vh" },
           trackX: x,
           mediaType: mediaType,
           borderRadius: "0",
-          speed: 1, //don't add anything zoom related on drop, as I don't want
-          //it to reset every time you change tracks
+          speed: 1,
+          zoomCenter: prev.zoomCenter ? prev.zoomCenter : { x: 0, y: 0 },
+          zoomStart: prev.zoomStart ? prev.zoomStart : null,
+          zoomDuration: prev.zoomDuration ? prev.zoomDuration : 0,
+          zoomLevel: prev.zoomLevel ? prev.zoomLevel : 1,
+          startsFrom: 0
         },
       ]);
     }
@@ -165,6 +169,7 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
               zoomStart: null,
               zoomDuration: null,
               zoomLevel: 1,
+              startsFrom: Math.floor(diff - item.start)
             };
           }
           return item;
