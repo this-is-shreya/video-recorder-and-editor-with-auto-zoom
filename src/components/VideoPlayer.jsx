@@ -31,6 +31,7 @@ const VideoPlayer = () => {
     zoomStart,
     zoomDuration,
     zoomLevel,
+    startsFrom
   } = currentSourceAndTiming[0];
   // console.log("currentsandt", currentSourceAndTiming);
   // Initialize state for position and size from currentSourceAndTiming
@@ -38,7 +39,7 @@ const VideoPlayer = () => {
     currentSourceAndTiming[0].position || { x: 0, y: 0 }
   );
   const [size, setSize] = useState(
-    currentSourceAndTiming[0].size || { width: 400, height: 225 } // Default to 16:9
+    currentSourceAndTiming[0].size || { width: "40vw", height: "22.5vh" } // Default to 16:9
   );
 
   const videoRef = useRef(null); // Reference to the video element
@@ -48,7 +49,7 @@ const VideoPlayer = () => {
   const [videoSource, setVideoSource] = useState(null); // To track video source changes
   // Calculate video start time based on seeker's position
   const calculateStartTime = () => {
-    const startTime = Math.max(seekerPosition * 0.1 - newStart, 0); // Ensure it's positive
+    const startTime = Math.max(Math.floor(seekerPosition * 0.1 - start), 0); // Ensure it's positive
     // console.log(
     //   "starttimefromvideoplayer",
     //   startTime,
@@ -68,54 +69,100 @@ const VideoPlayer = () => {
   };
 
   // Control video playback based on `isPlaying` and seeker position
+  // useEffect(() => {
+  //   console.log("video players: ", currentSourceAndTiming);
+
+  //   if (videoRef.current) {
+  //     const startTime = calculateStartTime();
+  //     videoRef.current.playbackRate = speed;
+  //     // Set startTime only once when not playing
+  //     if (!hasSetStartTime.current) {
+  //       console.log("Setting startTime:", startsFrom);
+  //       // videoRef.current.currentTime = startsFrom;
+  //       videoRef.current.currentTime = Math.floor(seekerPosition*0.1 - newStart) + startsFrom;
+
+  //       hasSetStartTime.current = true; // Mark start time as set
+  //       if (isPlaying) videoRef.current.play();
+  //     }
+  //     if(isPlaying && lastIsPlaying.current && Math.abs(seekerPosition - lastSeekerPosition.current) >= 2){
+  //       // videoRef.current.currentTime = Math.floor(startTime - newStart);
+  //       videoRef.current.currentTime = Math.floor(seekerPosition*0.1 - newStart) + startsFrom;
+
+  //       // videoRef.current.play();
+  //     }
+  //     // Control video playback state based on `isPlaying`
+  //     if (isPlaying && !lastIsPlaying.current) {
+  //       // console.log("Starting video playback");
+  //       // videoRef.current.currentTime = Math.floor(seekerPosition*0.1 - newStart) + startsFrom;
+
+  //       videoRef.current.play().catch((error) => {
+  //         console.warn("Playback error:", error);
+  //       });
+  //     } else if (!isPlaying && lastIsPlaying.current) {
+  //       // console.log("Pausing video playback");
+  //       videoRef.current.pause();
+  //       // hasSetStartTime.current = false; // Reset the start time
+  //     }
+  //     if (!videoSource || videoSource !== source) {
+  //       console.log("New video loaded, updating start time");
+  //       videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
+  //       if (isPlaying) videoRef.current.play();
+  //       setVideoSource(source);
+  //     }
+  //     if (!isPlaying) {
+  //       hasSetStartTime.current = false; // Reset the start time
+  //     }
+  //     // Update the last known state of isPlaying
+  //     lastIsPlaying.current = isPlaying;
+
+  //     // Update last known seeker position only if it's changed significantly
+  //     if (Math.abs(seekerPosition - lastSeekerPosition.current) > 1) {
+  //       lastSeekerPosition.current = seekerPosition;
+  //     }
+  //   }
+  // }, [isPlaying, seekerPosition, videoRef]); // Re-run when isPlaying or seekerPosition changes
+
   useEffect(() => {
-    console.log("video players: ", currentSourceAndTiming);
-
     if (videoRef.current) {
-      const startTime = calculateStartTime();
+
+      videoRef.current.onloadedmetadata = () => {
+        const videoWidth = videoRef.current.videoWidth;
+        const videoHeight = videoRef.current.videoHeight;
+        const aspectRatio = videoWidth / videoHeight;
+
+        // Fit video into the container while maintaining aspect ratio
+        let newWidth = 300; // Set an initial width (adjust as needed)
+        let newHeight = newWidth / aspectRatio;
+
+        setSize({ width: newWidth, height: newHeight });
+      };
+
+      const startTime = Math.max(
+        Math.floor(seekerPosition * 0.1 - newStart) + startsFrom,
+        0
+      );
       videoRef.current.playbackRate = speed;
-      // Set startTime only once when not playing
-      if (!hasSetStartTime.current) {
-        // console.log("Setting startTime:", Math.floor(startTime));
-        videoRef.current.currentTime = Math.max(startTime, 0);
-        hasSetStartTime.current = true; // Mark start time as set
-        if (isPlaying) videoRef.current.play();
-      }
-      // if(isPlaying && lastIsPlaying.current && seekerPosition !== lastSeekerPosition.current){
-      //   videoRef.current.currentTime = Math.floor(startTime - newStart);
-      //   // videoRef.current.play();
-      // }
-      // Control video playback state based on `isPlaying`
-      if (isPlaying && !lastIsPlaying.current) {
-        // console.log("Starting video playback");
-        // videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
 
-        videoRef.current.play().catch((error) => {
-          console.warn("Playback error:", error);
-        });
-      } else if (!isPlaying && lastIsPlaying.current) {
-        // console.log("Pausing video playback");
+      // Always set currentTime when seekerPosition changes significantly
+      if (Math.abs(seekerPosition - lastSeekerPosition.current) >= 1) {
+        console.log("Seeking to:", startTime);
+        videoRef.current.currentTime = startTime;
+        hasSetStartTime.current = true; // Allow updates on seek
+      }
+
+      // Play video if necessary
+      if (isPlaying) {
+        videoRef.current
+          .play()
+          .catch((error) => console.warn("Playback error:", error));
+      } else {
         videoRef.current.pause();
-        // hasSetStartTime.current = false; // Reset the start time
       }
-      if (!videoSource || videoSource !== source) {
-        console.log("New video loaded, updating start time");
-        videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
-        if (isPlaying) videoRef.current.play();
-        setVideoSource(source);
-      }
-      if (!isPlaying) {
-        hasSetStartTime.current = false; // Reset the start time
-      }
-      // Update the last known state of isPlaying
-      lastIsPlaying.current = isPlaying;
 
-      // Update last known seeker position only if it's changed significantly
-      if (Math.abs(seekerPosition - lastSeekerPosition.current) > 1) {
-        lastSeekerPosition.current = seekerPosition;
-      }
+      lastSeekerPosition.current = seekerPosition; // Track last position
+      lastIsPlaying.current = isPlaying;
     }
-  }, [isPlaying, seekerPosition, videoRef]); // Re-run when isPlaying or seekerPosition changes
+  }, [seekerPosition, isPlaying]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -123,13 +170,14 @@ const VideoPlayer = () => {
 
     const handleTimeUpdate = () => {
       const currentTime = Math.floor(seekerPosition * 0.1);
-
-      console.log(
-        "currenttime",
-        currentTime,
-        newStart + zoomStart,
-        newStart + zoomStart + zoomDuration,
-      );
+      console.log(currentSourceAndTiming);
+      
+      // console.log(
+      //   "currenttime",
+      //   currentTime,
+      //   newStart + zoomStart,
+      //   newStart + zoomStart + zoomDuration,
+      // );
 
       if (zoomStart !== null && zoomDuration !== null) {
         if (
@@ -191,7 +239,7 @@ const VideoPlayer = () => {
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "contain",
+          objectFit: "cover",
           display: "block",
           transition: `transform 0.3s ease-in-out, border-radius 0.3s ease-in-out`, // Apply transition to both transform and border-radius
           transform: isPlaying

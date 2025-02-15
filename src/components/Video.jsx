@@ -20,8 +20,11 @@ const Video = () => {
   const [zoomDuration, setzoomDuration] = useState(
     currentElement?.zoomDuration
   );
-  const [zoomLevel, setZoomLevel] = useState(currentElement ? currentElement?.zoomLevel : 1);
+  const [zoomLevel, setZoomLevel] = useState(
+    currentElement ? currentElement?.zoomLevel : 1
+  );
   const [clickPosition, setClickPosition] = useState(null); // Stores red dot position
+  const [isOpen, setIsOpen] = useState(false);
 
   const changeRoundness = (e) => {
     if (!selectedElement) return;
@@ -124,17 +127,17 @@ const Video = () => {
   };
   const resetZoom = () => {
     setZoomCenter({ x: 0, y: 0 });
-    setZoomStart(null);
-    setzoomDuration(null);
-    setZoomLevel("1");
+    setZoomStart(currentElement.newStart);
+    setzoomDuration(0);
+    setZoomLevel(1);
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
       if (item.id === selectedElement) {
         return {
           ...item,
-          zoomCenter: zoomCenter,
-          zoomStart: zoomStart,
-          zoomDuration: zoomDuration,
-          zoomLevel: zoomLevel,
+          zoomCenter: { x: 0, y: 0 },
+          zoomStart: null,
+          zoomDuration: 0,
+          zoomLevel: 1,
         };
       }
       return item;
@@ -144,8 +147,8 @@ const Video = () => {
     setCurrentElement({
       ...currentElement,
       zoomStart: null,
-      zoomDuration: null,
-      zoomLevel: "1",
+      zoomDuration: 0,
+      zoomLevel: 1,
     });
   };
 
@@ -156,10 +159,29 @@ const Video = () => {
       );
       if (selectedItem) {
         setBorderRadius(selectedItem.borderRadius || 0);
-        setZoomLevel(selectedItem.zoomLevel)
-        setZoomCenter(selectedItem.zoomCenter)
-        setZoomStart(selectedItem.zoomStart ? Math.floor(selectedItem.zoomStart) : Math.floor(selectedItem.newStart))
-        setzoomDuration(selectedItem.zoomDuration ? selectedItem.zoomDuration : 0)
+        setZoomLevel(selectedItem.zoomLevel);
+        setZoomCenter(selectedItem.zoomCenter);
+        setZoomStart(
+          selectedItem.zoomStart
+            ? Math.floor(selectedItem.zoomStart + selectedItem.newStart)
+            : Math.floor(selectedItem.newStart)
+        );
+        setzoomDuration(
+          selectedItem.zoomDuration ? selectedItem.zoomDuration : 0
+        );
+
+        // Convert zoomCenter (relative) to absolute click position (pixels)
+        if (selectedItem.zoomCenter) {
+          const previewWidth = 200; // Match your preview width
+          const previewHeight = 112; // Match your preview height (16:9)
+
+          const absoluteX = selectedItem.zoomCenter.x * previewWidth;
+          const absoluteY = selectedItem.zoomCenter.y * previewHeight;
+
+          setClickPosition({ x: absoluteX, y: absoluteY });
+        } else {
+          setClickPosition(null); // Reset if no zoom data
+        }
       }
     }
   }, [selectedElement, sourceAndTiming]);
@@ -171,8 +193,8 @@ const Video = () => {
   }, [selectedElement, sourceAndTiming]);
 
   return (
-    <div className="panel">
-      <div className="slidecontainer">
+    <div className="slidecontainer">
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
         <label>Roundness:</label>
         <input
           type="range"
@@ -185,7 +207,8 @@ const Video = () => {
           }}
         />
         <label>{borderRadius}px</label>
-        <br />
+      </div>
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
         <label>Speed:</label>
         <input
           type="range"
@@ -199,7 +222,9 @@ const Video = () => {
           }}
         />
         <label>{speed}x</label>
-        <br />
+      </div>
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+        <label>Split audio:</label>
         <button
           onClick={() => {
             extractAudioFromBlobURL(
@@ -209,6 +234,11 @@ const Video = () => {
         >
           Extract Audio
         </button>
+      </div>
+      <button onClick={()=>{setIsOpen(!isOpen)}}>Zoom settings</button>
+      {isOpen && (
+        <>
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
         <label>Add Zoom:</label>
         <input
           name="zoom-start"
@@ -221,6 +251,9 @@ const Video = () => {
           step={1}
           onChange={(e) => setZoomStart(Number(e.target.value))}
         ></input>
+      </div>
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+        <label>Zoom duration</label>
         <input
           name="zoom-end"
           type="range"
@@ -232,6 +265,10 @@ const Video = () => {
           step={1}
           onChange={(e) => setzoomDuration(Number(e.target.value))}
         ></input>
+        <label>{isNaN(zoomDuration) ? 0 : zoomDuration}</label>
+      </div>
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+        <label>Zoom level:</label>
         <input
           name="zoom-level"
           type="range"
@@ -242,6 +279,9 @@ const Video = () => {
           onChange={(e) => setZoomLevel(e.target.value)}
         />
         <label>{isNaN(zoomLevel) ? 1 : zoomLevel}</label>
+      </div>
+      <label>Preview:</label>
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
         <div
           onClick={handlePreviewClick}
           style={{
@@ -280,9 +320,13 @@ const Video = () => {
             />
           )}
         </div>
+      </div>
+      <div style={{ display: "flex", gap: "10px" }}>
         <button onClick={addZoom}>Apply</button>
         <button onClick={resetZoom}>Reset</button>
       </div>
+      </>
+    )}
     </div>
   );
 };

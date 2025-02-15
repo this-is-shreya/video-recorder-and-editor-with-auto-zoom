@@ -78,6 +78,7 @@ const Timeline = () => {
           zoomStart: null,
           zoomDuration: null,
           zoomLevel: 1,
+          startsFrom: Math.floor(seekerPosition * 0.1 - source.newStart)
         };
 
         // First half
