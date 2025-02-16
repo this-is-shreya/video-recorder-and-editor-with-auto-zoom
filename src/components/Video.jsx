@@ -1,6 +1,7 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import AppContext from "../AppContext";
 import { extractAudioFromBlobURL } from "../utils/extractAndDownloadAudio";
+import VideoPlayer from "./VideoPlayer";
 
 const Video = () => {
   const {
@@ -9,6 +10,7 @@ const Video = () => {
     setSourceAndTiming,
     setIsSpeedChange,
     seekerPosition,
+    seekerPositionManuallyChanged,
   } = useContext(AppContext);
   const [currentElement, setCurrentElement] = useState(
     sourceAndTiming.find((item) => item.id === selectedElement)
@@ -23,8 +25,10 @@ const Video = () => {
   const [zoomLevel, setZoomLevel] = useState(
     currentElement ? currentElement?.zoomLevel : 1
   );
+  const [volume, setVolume] = useState(100);
   const [clickPosition, setClickPosition] = useState(null); // Stores red dot position
   const [isOpen, setIsOpen] = useState(false);
+  const videoRef = useRef(null);
 
   const changeRoundness = (e) => {
     if (!selectedElement) return;
@@ -51,6 +55,18 @@ const Video = () => {
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
       if (item.id === selectedElement) {
         return { ...item, speed: newSpeed };
+      }
+      return item;
+    });
+
+    setSourceAndTiming(updatedSourceAndTiming);
+  };
+  const changeVolume = (e) => {
+    if (!selectedElement) return;
+    // Update the state immutably
+    const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+      if (item.id === selectedElement) {
+        return { ...item, volume: Number(e.target.value) / 100 };
       }
       return item;
     });
@@ -172,8 +188,8 @@ const Video = () => {
 
         // Convert zoomCenter (relative) to absolute click position (pixels)
         if (selectedItem.zoomCenter) {
-          const previewWidth = 200; // Match your preview width
-          const previewHeight = 112; // Match your preview height (16:9)
+          const previewWidth = 290; // Match your preview width
+          const previewHeight = 180; // Match your preview height (16:9)
 
           const absoluteX = selectedItem.zoomCenter.x * previewWidth;
           const absoluteY = selectedItem.zoomCenter.y * previewHeight;
@@ -192,141 +208,202 @@ const Video = () => {
     );
   }, [selectedElement, sourceAndTiming]);
 
+  useEffect(() => {
+    if (!videoRef || !videoRef.current) {
+      return;
+    }
+    if(seekerPosition * 0.1 < currentElement.newStart || seekerPosition * 0.1 > currentElement.newEnd){
+      return;
+    }
+    videoRef.current.currentTime =
+      Math.floor(seekerPosition * 0.1 - currentElement.newStart) +
+      currentElement.startsFrom;
+
+  }, [seekerPositionManuallyChanged]);
   return (
     <div className="slidecontainer">
-      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
-        <label>Roundness:</label>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={borderRadius}
-          onChange={(e) => {
-            setBorderRadius(e.target.value);
-            changeRoundness(e);
-          }}
-        />
-        <label>{borderRadius}px</label>
-      </div>
-      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
-        <label>Speed:</label>
-        <input
-          type="range"
-          min="0.5"
-          max="2"
-          step="0.1"
-          value={speed}
-          onChange={(e) => {
-            setSpeed(e.target.value);
-            changeSpeed(e);
-          }}
-        />
-        <label>{speed}x</label>
-      </div>
-      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
-        <label>Split audio:</label>
-        <button
-          onClick={() => {
-            extractAudioFromBlobURL(
-              sourceAndTiming.find((item) => item.id === selectedElement).source
-            );
-          }}
-        >
-          Extract Audio
-        </button>
-      </div>
-      <button onClick={()=>{setIsOpen(!isOpen)}}>Zoom settings</button>
-      {isOpen && (
+      {selectedElement ? (
         <>
-      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
-        <label>Add Zoom:</label>
-        <input
-          name="zoom-start"
-          type="number"
-          value={
-            isNaN(zoomStart) ? Math.floor(currentElement?.newStart) : zoomStart
-          }
-          min={currentElement ? Math.floor(currentElement?.newStart) : 0}
-          max={currentElement ? Math.floor(currentElement?.newEnd - 1) : 0}
-          step={1}
-          onChange={(e) => setZoomStart(Number(e.target.value))}
-        ></input>
-      </div>
-      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
-        <label>Zoom duration</label>
-        <input
-          name="zoom-end"
-          type="range"
-          value={zoomDuration}
-          min={0}
-          max={
-            currentElement ? Math.floor(currentElement?.newEnd - zoomStart) : 0
-          }
-          step={1}
-          onChange={(e) => setzoomDuration(Number(e.target.value))}
-        ></input>
-        <label>{isNaN(zoomDuration) ? 0 : zoomDuration}</label>
-      </div>
-      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
-        <label>Zoom level:</label>
-        <input
-          name="zoom-level"
-          type="range"
-          min={1}
-          max={3}
-          step={0.1}
-          value={isNaN(zoomLevel) ? 1 : zoomLevel}
-          onChange={(e) => setZoomLevel(e.target.value)}
-        />
-        <label>{isNaN(zoomLevel) ? 1 : zoomLevel}</label>
-      </div>
-      <label>Preview:</label>
-      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
-        <div
-          onClick={handlePreviewClick}
-          style={{
-            width: "200px", // Preview size
-            height: "112px", // Aspect ratio of 16:9
-            marginRight: "10px",
-            border: "2px solid #ccc",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <video
-            src={currentElement?.source}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              position: "absolute",
-              left: 0,
-              top: 0,
-            }}
-            muted
-          ></video>
-          {clickPosition && (
-            <div
-              style={{
-                position: "absolute",
-                top: clickPosition.y - 5,
-                left: clickPosition.x - 5,
-                width: "10px",
-                height: "10px",
-                backgroundColor: "red",
-                borderRadius: "50%",
-                pointerEvents: "none",
+          <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+            <label>Roundness:</label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={borderRadius}
+              onChange={(e) => {
+                setBorderRadius(e.target.value);
+                changeRoundness(e);
               }}
             />
+            <label>{borderRadius}px</label>
+          </div>
+          <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+            <label>Speed:</label>
+            <input
+              type="range"
+              min="0.5"
+              max="2"
+              step="0.1"
+              value={speed}
+              onChange={(e) => {
+                setSpeed(e.target.value);
+                changeSpeed(e);
+              }}
+            />
+            <label>{speed}x</label>
+          </div>
+          <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+            <label>Volume:</label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={volume}
+              onChange={(e) => {
+                setVolume(Number(e.target.value));
+                changeVolume(e);
+              }}
+            />
+            <label>{volume}</label>
+          </div>
+          <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+            <label>Split audio:</label>
+            <button
+              onClick={() => {
+                extractAudioFromBlobURL(
+                  sourceAndTiming.find((item) => item.id === selectedElement)
+                    .source
+                );
+              }}
+            >
+              Extract Audio
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setIsOpen(!isOpen);
+            }}
+          >
+            Zoom settings
+          </button>
+          {isOpen && (
+            <>
+              <div
+                style={{ display: "flex", flexDirection: "row", gap: "10px" }}
+              >
+                <label>Add Zoom:</label>
+                <input
+                  name="zoom-start"
+                  type="number"
+                  value={
+                    isNaN(zoomStart)
+                      ? Math.floor(currentElement?.newStart)
+                      : zoomStart
+                  }
+                  min={
+                    currentElement ? Math.floor(currentElement?.newStart) : 0
+                  }
+                  max={
+                    currentElement ? Math.floor(currentElement?.newEnd - 1) : 0
+                  }
+                  step={1}
+                  onChange={(e) => setZoomStart(Number(e.target.value))}
+                ></input>
+              </div>
+              <div
+                style={{ display: "flex", flexDirection: "row", gap: "10px" }}
+              >
+                <label>Zoom duration</label>
+                <input
+                  name="zoom-end"
+                  type="range"
+                  value={zoomDuration}
+                  min={0}
+                  max={
+                    currentElement
+                      ? Math.floor(currentElement?.newEnd - zoomStart)
+                      : 0
+                  }
+                  step={1}
+                  onChange={(e) => setzoomDuration(Number(e.target.value))}
+                ></input>
+                <label>{isNaN(zoomDuration) ? 0 : zoomDuration}</label>
+              </div>
+              <div
+                style={{ display: "flex", flexDirection: "row", gap: "10px" }}
+              >
+                <label>Zoom level:</label>
+                <input
+                  name="zoom-level"
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  value={isNaN(zoomLevel) ? 1 : zoomLevel}
+                  onChange={(e) => setZoomLevel(e.target.value)}
+                />
+                <label>{isNaN(zoomLevel) ? 1 : zoomLevel}</label>
+              </div>
+              <label>Preview:</label>
+              <div
+                style={{ display: "flex", flexDirection: "row", gap: "10px" }}
+              >
+                <div
+                  onClick={handlePreviewClick}
+                  style={{
+                    width: "290px", // Preview size
+                    // aspectRatio: "16/9",
+                    height:"180px",
+                    marginRight: "10px",
+                    border: "2px solid #ccc",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  <video
+                    ref={videoRef}
+                    src={currentElement?.source}
+                    currentTime="30"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                    }}
+                    muted
+                  ></video>
+                  {clickPosition && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: clickPosition.y - 5,
+                        left: clickPosition.x - 5,
+                        width: "10px",
+                        height: "10px",
+                        backgroundColor: "red",
+                        borderRadius: "50%",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button onClick={addZoom}>Apply</button>
+                <button onClick={resetZoom}>Reset</button>
+              </div>
+            </>
           )}
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: "10px" }}>
-        <button onClick={addZoom}>Apply</button>
-        <button onClick={resetZoom}>Reset</button>
-      </div>
-      </>
-    )}
+        </>
+      ) : (
+        <>
+          <label>No element selected</label>
+        </>
+      )}
     </div>
   );
 };

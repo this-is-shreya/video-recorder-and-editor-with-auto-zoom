@@ -3,7 +3,14 @@ import { getMediaSrcAndType } from "../../utils/getMediaSrcAndType";
 import { Rnd } from "react-rnd";
 import AppContext from "../../AppContext";
 
-const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
+const Track = ({
+  isSplit,
+  setIsSplit,
+  isDeleteMedia,
+  setIsDeleteMedia,
+  timelineWidth,
+  setTimelineWidth,
+}) => {
   const [elements, setElements] = useState([]); // Store element IDs
   const [trackMedia, setTrackMedia] = useState([]); // Store media data
   const [positions, setPositions] = useState({}); // Store positions and sizes
@@ -17,7 +24,7 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
     maxTime,
     setMaxTime,
     sourceAndTiming,
-    setSourceAndTiming
+    setSourceAndTiming,
   } = useContext(AppContext);
 
   const handleDrop = (e) => {
@@ -57,7 +64,7 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
           newEnd: x * 0.1 + Number(duration),
           speedEnd: x * 0.1 + Number(duration),
           position: { x: 0, y: 0 },
-          size: { width: "40vw", height: "22.5vh" },
+          size: { width: "30vw", height: "35vh" },
           trackX: x,
           mediaType: mediaType,
           borderRadius: "0",
@@ -66,7 +73,8 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
           zoomStart: prev.zoomStart ? prev.zoomStart : null,
           zoomDuration: prev.zoomDuration ? prev.zoomDuration : 0,
           zoomLevel: prev.zoomLevel ? prev.zoomLevel : 1,
-          startsFrom: 0
+          startsFrom: 0,
+          volume: 1,
         },
       ]);
     }
@@ -75,6 +83,7 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
   const handleDragStop = (id, e, data) => {
     const newX = data.x;
     const width = positions[id]?.width || 100;
+
     const isOverlapping = checkOverlap(
       { left: newX, right: newX + width },
       elements,
@@ -165,11 +174,11 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
               ...item,
               newStart: diff,
               trackX: newX,
-              zoomCenter: { x: 0, y: 0 },
-              zoomStart: null,
-              zoomDuration: null,
-              zoomLevel: 1,
-              startsFrom: Math.floor(diff - item.start)
+              // zoomCenter: { x: 0, y: 0 },
+              // zoomStart: null,
+              // zoomDuration: null,
+              // zoomLevel: 1,
+              startsFrom: Math.floor(diff - item.start),
             };
           }
           return item;
@@ -220,10 +229,10 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
             return {
               ...item,
               newEnd: diff,
-              zoomCenter: { x: 0, y: 0 },
-              zoomStart: null,
-              zoomDuration: null,
-              zoomLevel: 1,
+              // zoomCenter: { x: 0, y: 0 },
+              // zoomStart: null,
+              // zoomDuration: null,
+              // zoomLevel: 1,
             };
           }
           return item;
@@ -320,10 +329,10 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
           return {
             ...item,
             speedEnd: item.speedStart + speedEnd,
-            zoomCenter: { x: 0, y: 0 },
-            zoomStart: null,
-            zoomDuration: null,
-            zoomLevel: 1,
+            // zoomCenter: { x: 0, y: 0 },
+            // zoomStart: null,
+            // zoomDuration: null,
+            // zoomLevel: 1,
           };
         }
         return item;
@@ -353,6 +362,7 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
         return prev.filter((item) => item !== selectedElement);
       });
       setTrackMedia(tracks);
+      setSelectedElement(null);
       setIsDeleteMedia(false);
     }
 
@@ -360,8 +370,7 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
       (max, obj) => Math.max(max, obj.newEnd),
       0
     );
-    setMaxTime(convertToFormattedTime(maxNewEnd))
-
+    setMaxTime(convertToFormattedTime(maxNewEnd));
   }, [sourceAndTiming, isSplit, isDeleteMedia]);
 
   return (
@@ -369,6 +378,9 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
       className="track"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
+      style={{
+        minWidth: `${timelineWidth}px`,
+      }}
     >
       {trackMedia.map((m) => (
         <Rnd
@@ -394,6 +406,14 @@ const Track = ({ isSplit, setIsSplit, isDeleteMedia, setIsDeleteMedia }) => {
           onResizeStop={(e, direction, ref, delta, position) => {
             handleResizeStop(m.id, e, direction, ref, delta, position);
             setIsDraggable(true);
+          }}
+          onDragStart={(e, data) => {
+            const width = positions[m.id]?.width || 100;
+            if (data.x + width > timelineWidth) {
+              console.log("ans ", data.x + width);
+              
+              setTimelineWidth(data.x + width); // Expand dynamically
+            }
           }}
         >
           <div

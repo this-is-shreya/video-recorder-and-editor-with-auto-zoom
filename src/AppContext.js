@@ -17,6 +17,8 @@ const AppContext = createContext({
   setMaxTime: () => {},
   convertToFormattedTime: () => {},
   videoPlayerRef: null,
+  seekerPositionManuallyChanged: false,
+  setSeekerPositionManuallyChanged: ()=>{}
 });
 
 export default AppContext;

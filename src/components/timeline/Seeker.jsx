@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import AppContext from "../../AppContext";
 
-const Seeker = ({seekerPosition}) => {
-
+const Seeker = () => {
+  const {seekerPosition} = useContext(AppContext)
+  
   return (
     <div
       style={{

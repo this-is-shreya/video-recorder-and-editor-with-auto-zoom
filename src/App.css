@@ -69,11 +69,10 @@ input[type="file"] {
   cursor: pointer;
 }
 .timeline {
-  position: fixed;
   bottom: 0;
+  position: absolute;
   border: 1px solid #28190e;
-  min-width: 90vw;
-  height: 40vh;
+  height: 30vh;
   margin-left: 10vw;
   overflow-y: auto;
   overflow-x: auto;
@@ -88,11 +87,10 @@ input[type="file"] {
   display: flex;
   align-items: center;
   height: 10vh;
-  width: 100%;
   border: 1px solid #ca1e1e;
   position: relative;
-  overflow-x: auto;
   white-space: nowrap;
+  overflow-x: auto;
 }
 
 .video-player {

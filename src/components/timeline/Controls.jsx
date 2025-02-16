@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useContext } from "react";
+import AppContext from "../../AppContext";
 
-const Controls = ({ setSeekerPosition }) => {
+const Controls = () => {
+  const {setSeekerPosition, setSeekerPositionManuallyChanged } = useContext(AppContext)
   const handleClick = (e) => {
     const trackRect = e.target.getBoundingClientRect();
     const x = Math.round(e.clientX - trackRect.left); // Relative x-coordinate
     setSeekerPosition(x);
+    setSeekerPositionManuallyChanged(true)
   };
   
   return (

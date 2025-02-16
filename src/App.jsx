@@ -1,4 +1,4 @@
-import {  useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import AppContext from "./AppContext";
 import Navbar from "./components/Navbar";
@@ -19,6 +19,8 @@ function App() {
   const [currentTime, setCurrentTime] = useState("00:00:00");
   const [maxTime, setMaxTime] = useState("00:00:00");
   const videoPlayerRef = useRef(null);
+  const [seekerPositionManuallyChanged, setSeekerPositionManuallyChanged] =
+    useState(false);
 
   const convertToFormattedTime = (position) => {
     const time = Math.ceil(position);
@@ -29,10 +31,10 @@ function App() {
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
     const formattedHours = hours < 10 ? `0${hours}` : hours;
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
-  }
-  useEffect(()=>{
+  };
+  useEffect(() => {
     setCurrentTime(convertToFormattedTime(seekerPosition * 0.1));
-  },[seekerPosition])
+  }, [seekerPosition]);
 
   return (
     <>
@@ -54,11 +56,13 @@ function App() {
           setMaxTime: setMaxTime,
           convertToFormattedTime: convertToFormattedTime,
           videoPlayerRef: videoPlayerRef,
+          seekerPositionManuallyChanged:seekerPositionManuallyChanged,
+          setSeekerPositionManuallyChanged:setSeekerPositionManuallyChanged
         }}
       >
         <Navbar />
         <div className="video-preview">
-          <div className="video-player">
+          <div className="video-player" ref={videoPlayerRef}>
             <VideoPlayer />
           </div>
           <div className="video-player-controls">
@@ -75,7 +79,7 @@ function App() {
             </button>
             <span>{maxTime}</span>
           </div>
-          <VE />
+          {/* <VE /> */}
         </div>
         <Timeline />
       </AppContext.Provider>

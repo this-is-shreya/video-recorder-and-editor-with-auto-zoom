@@ -9,6 +9,9 @@ const Timeline = () => {
   const intervalRef = useRef(null);
   const [isSplit, setIsSplit] = useState(false);
   const [isDeleteMedia, setIsDeleteMedia] = useState(false);
+  const [timelineWidth, setTimelineWidth] = useState(
+    (90 * window.innerWidth) / 100
+  );
 
   const {
     seekerPosition,
@@ -74,11 +77,11 @@ const Timeline = () => {
           newStart: seekerPosition * 0.1 + 1,
           speedStart: seekerPosition * 0.1 + 1,
           trackX: seekerPosition,
-          zoomCenter: { x: 0, y: 0 },
-          zoomStart: null,
-          zoomDuration: null,
-          zoomLevel: 1,
-          startsFrom: Math.floor(seekerPosition * 0.1 - source.newStart)
+          // zoomCenter: { x: 0, y: 0 },
+          // zoomStart: null,
+          // zoomDuration: null,
+          // zoomLevel: 1,
+          startsFrom: Math.floor(seekerPosition * 0.1 - source.newStart + source.startsFrom)
         };
 
         // First half
@@ -87,10 +90,10 @@ const Timeline = () => {
           speedEnd: seekerPosition * 0.1, //it's a special case, instead of newEnd I'm using seekerPosition
           newEnd: seekerPosition * 0.1,
           end: seekerPosition * 0.1,
-          zoomCenter: { x: 0, y: 0 },
-          zoomStart: null,
-          zoomDuration: null,
-          zoomLevel: 1
+          // zoomCenter: { x: 0, y: 0 },
+          // zoomStart: null,
+          // zoomDuration: null,
+          // zoomLevel: 1
         };
         console.log("new sources are ", newSource, updatedSource);
 
@@ -123,19 +126,26 @@ const Timeline = () => {
     console.log("from timeline: currentsandt", currentSourceAndTiming);
   }, [seekerPosition, sourceAndTiming]);
   return (
-    <div className="timeline">
+    <div
+      className="timeline"
+      style={{
+        minWidth: `${timelineWidth}px`,
+      }}
+    >
       <div>
         <button onClick={handleSplit}>Split</button>
         <button onClick={handleDeleteTrackMedia}>Delete</button>
       </div>
 
-      <Controls setSeekerPosition={setSeekerPosition} />
-      <Seeker seekerPosition={seekerPosition} />
+      <Controls />
+      <Seeker />
       <Track
         isSplit={isSplit}
         setIsSplit={setIsSplit}
         isDeleteMedia={isDeleteMedia}
         setIsDeleteMedia={setIsDeleteMedia}
+        timelineWidth={timelineWidth}
+        setTimelineWidth={setTimelineWidth}
       />
       {/* <Track
         isSplit={isSplit}

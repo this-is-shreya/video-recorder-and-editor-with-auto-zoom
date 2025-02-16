@@ -8,8 +8,11 @@ const VideoPlayer = () => {
     isPlaying,
     seekerPosition,
     setCurrentSourceAndTiming,
+    sourceAndTiming,
+    setSourceAndTiming,
     selectedElement,
-    videoPlayerRef,
+    seekerPositionManuallyChanged,
+    setSeekerPositionManuallyChanged,
   } = useContext(AppContext);
 
   // Ensure there is valid video data
@@ -31,42 +34,47 @@ const VideoPlayer = () => {
     zoomStart,
     zoomDuration,
     zoomLevel,
-    startsFrom
+    startsFrom,
+    volume,
   } = currentSourceAndTiming[0];
   // console.log("currentsandt", currentSourceAndTiming);
   // Initialize state for position and size from currentSourceAndTiming
   const [position, setPosition] = useState(
     currentSourceAndTiming[0].position || { x: 0, y: 0 }
   );
-  const [size, setSize] = useState(
-    currentSourceAndTiming[0].size || { width: "40vw", height: "22.5vh" } // Default to 16:9
-  );
+  console.log("SIZE IS ", currentSourceAndTiming[0].size);
+
+  const [size, setSize] = useState(currentSourceAndTiming[0].size);
 
   const videoRef = useRef(null); // Reference to the video element
   const lastSeekerPosition = useRef(seekerPosition); // To track the last seeker position
   const lastIsPlaying = useRef(isPlaying); // To track the last isPlaying state
   const hasSetStartTime = useRef(false); // Flag to track if startTime has been set
-  const [videoSource, setVideoSource] = useState(null); // To track video source changes
-  // Calculate video start time based on seeker's position
-  const calculateStartTime = () => {
-    const startTime = Math.max(Math.floor(seekerPosition * 0.1 - start), 0); // Ensure it's positive
-    // console.log(
-    //   "starttimefromvideoplayer",
-    //   startTime,
-    //   seekerPosition,
-    //   newStart,
-    //   start
-    // );
+  const [videoSource, setVideoSource] = useState(source); // To track video source changes
+  const [videoLoaded, setVideoLoaded] = useState(false)
+  console.log("SET SIZE ", size);
 
-    return startTime;
-  };
   // Update `currentSourceAndTiming` when size or position changes
   const updateContext = (newPosition, newSize) => {
-    const updatedData = { ...currentSourceAndTiming };
-    updatedData[0].position = newPosition;
-    updatedData[0].size = newSize;
-    setCurrentSourceAndTiming(updatedData); // Update the context
+    console.log("NEW SIZE ", newSize);
+
+    // setCurrentSourceAndTiming(updatedData);
+
+    setSourceAndTiming((prev) =>
+      prev.map((item) =>
+        item.id === currentSourceAndTiming[0].id
+          ? { ...item, position: newPosition, size: newSize }
+          : item
+      )
+    );
+    console.log("Updated Context with New Size:", newSize);
   };
+
+  // useEffect(() => {
+  //   if (currentSourceAndTiming[0]?.size) {
+  //     setSize(currentSourceAndTiming[0].size);
+  //   }
+  // }, [currentSourceAndTiming[0]?.size]); // Ensure it re-runs when size changes
 
   // Control video playback based on `isPlaying` and seeker position
   // useEffect(() => {
@@ -123,62 +131,57 @@ const VideoPlayer = () => {
   // }, [isPlaying, seekerPosition, videoRef]); // Re-run when isPlaying or seekerPosition changes
 
   useEffect(() => {
-    if (videoRef.current) {
+    if (!videoRef.current) return;
 
-      videoRef.current.onloadedmetadata = () => {
-        const videoWidth = videoRef.current.videoWidth;
-        const videoHeight = videoRef.current.videoHeight;
-        const aspectRatio = videoWidth / videoHeight;
-
-        // Fit video into the container while maintaining aspect ratio
-        let newWidth = 300; // Set an initial width (adjust as needed)
-        let newHeight = newWidth / aspectRatio;
-
-        setSize({ width: newWidth, height: newHeight });
-      };
-
-      const startTime = Math.max(
-        Math.floor(seekerPosition * 0.1 - newStart) + startsFrom,
-        0
-      );
-      videoRef.current.playbackRate = speed;
-
-      // Always set currentTime when seekerPosition changes significantly
-      if (Math.abs(seekerPosition - lastSeekerPosition.current) >= 1) {
-        console.log("Seeking to:", startTime);
-        videoRef.current.currentTime = startTime;
-        hasSetStartTime.current = true; // Allow updates on seek
-      }
-
-      // Play video if necessary
-      if (isPlaying) {
-        videoRef.current
-          .play()
-          .catch((error) => console.warn("Playback error:", error));
-      } else {
-        videoRef.current.pause();
-      }
-
-      lastSeekerPosition.current = seekerPosition; // Track last position
-      lastIsPlaying.current = isPlaying;
+    const video = videoRef.current;
+    video.volume = volume;
+    if (!videoSource || videoSource !== source) {
+      console.log("New video loaded, updating start time");
+      // videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
+      // if (isPlaying) videoRef.current.play();
+      hasSetStartTime.current = false;
+      setVideoSource(source);
     }
-  }, [seekerPosition, isPlaying]);
+    if (!hasSetStartTime.current) {
+      setTimeout(()=>{
+        video.currentTime = startsFrom;
+        hasSetStartTime.current = true;
+      }, 50)
+    }
+    video.onloadedmetadata = () => {
+      setSize({ width: size.width, height: size.height });
+        setVideoLoaded(true);
+    };
 
+    // Set playback speed
+    video.playbackRate = speed;
+
+    // Only seek if the user manually scrubs
+    if (seekerPositionManuallyChanged) {
+      console.log("Seeking to:", seekerPosition);
+      video.currentTime =
+        Math.floor(seekerPosition * 0.1 - newStart) + startsFrom;
+      setSeekerPositionManuallyChanged(false);
+    }
+
+    // Handle playing/pausing
+    if (isPlaying) {
+      video.play().catch((error) => console.warn("Playback error:", error));
+    } else {
+      video.pause();
+    }
+
+    lastSeekerPosition.current = seekerPosition;
+  }, [seekerPosition, isPlaying, speed]); // Removed unnecessary dependencies
+
+  //for applying zoom
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleTimeUpdate = () => {
       const currentTime = Math.floor(seekerPosition * 0.1);
-      console.log(currentSourceAndTiming);
-      
-      // console.log(
-      //   "currenttime",
-      //   currentTime,
-      //   newStart + zoomStart,
-      //   newStart + zoomStart + zoomDuration,
-      // );
-
+        
       if (zoomStart !== null && zoomDuration !== null) {
         if (
           currentTime >= Math.floor(newStart + zoomStart) &&
@@ -232,15 +235,20 @@ const VideoPlayer = () => {
       className={`${selectedElement}-preview`}
     >
       <video
+        key={source}
         ref={videoRef}
         src={source}
         autoPlay={false}
         muted={false}
+        crossOrigin="anonymous"
+        onLoadedMetadata={() => setVideoLoaded(true)}
         style={{
           width: "100%",
           height: "100%",
           objectFit: "cover",
           display: "block",
+          opacity: videoLoaded ? 1 : 0, // Avoid display issues
+          visibility: videoLoaded ? "visible" : "hidden",
           transition: `transform 0.3s ease-in-out, border-radius 0.3s ease-in-out`, // Apply transition to both transform and border-radius
           transform: isPlaying
             ? `scale(${currentZoomLevel}, ${currentZoomLevel})`
