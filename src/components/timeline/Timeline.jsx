@@ -4,10 +4,10 @@ import Seeker from "./Seeker";
 import Controls from "./Controls";
 import { getCurrentSources } from "../../utils/getCurrentSources";
 import AppContext from "../../AppContext";
+import { pixels } from "../../utils/PixelsPerSecondEnum";
 
 const Timeline = () => {
   const intervalRef = useRef(null);
-  const [isSplit, setIsSplit] = useState(false);
   const [isDeleteMedia, setIsDeleteMedia] = useState(false);
   const [timelineWidth, setTimelineWidth] = useState(
     (90 * window.innerWidth) / 100
@@ -25,6 +25,10 @@ const Timeline = () => {
     setSelectedElement,
     maxTime,
     convertToFormattedTime,
+    zoomTimeline,
+    setZoomTimeline,
+    isSplit,
+    setIsSplit,
   } = useContext(AppContext);
 
   // const handleButtonClick = () => {
@@ -41,14 +45,18 @@ const Timeline = () => {
     }
     // Play the playback
     intervalRef.current = setInterval(() => {
-      const time = convertToFormattedTime(seekerPosition * 0.1);
+      const time = convertToFormattedTime(
+        Math.floor(seekerPosition / pixels[zoomTimeline])
+      );
+      console.log("TIME AS PER SEEKER IS ", time);
+
       if (time >= maxTime) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
         return;
       }
       setSeekerPosition((prevPosition) => {
-        const newPosition = prevPosition + 10;
+        const newPosition = prevPosition + pixels[zoomTimeline];
         // console.log("New seeker position:", newPosition);
         return newPosition;
       });
@@ -66,30 +74,34 @@ const Timeline = () => {
     sourceAndTiming.forEach((source) => {
       if (
         source.id === selectedElement &&
-        seekerPosition * 0.1 >= source.newStart &&
-        seekerPosition * 0.1 <= source.newEnd
+        seekerPosition / pixels[zoomTimeline] >= source.newStart &&
+        seekerPosition / pixels[zoomTimeline] <= source.newEnd
       ) {
         // Second half (new split segment)
         const newSource = {
           ...source,
           id: Date.now(),
-          start: seekerPosition * 0.1 + 1,
-          newStart: seekerPosition * 0.1 + 1,
-          speedStart: seekerPosition * 0.1 + 1,
+          start: Math.floor(seekerPosition / pixels[zoomTimeline]) + 1,
+          newStart: Math.floor(seekerPosition / pixels[zoomTimeline]) + 1,
+          speedStart: Math.floor(seekerPosition / pixels[zoomTimeline]) + 1,
           trackX: seekerPosition,
           // zoomCenter: { x: 0, y: 0 },
           // zoomStart: null,
           // zoomDuration: null,
           // zoomLevel: 1,
-          startsFrom: Math.floor(seekerPosition * 0.1 - source.newStart + source.startsFrom)
+          startsFrom:
+            Math.floor(seekerPosition / pixels[zoomTimeline]) -
+            source.newStart +
+            source.startsFrom,
+          trackNum: source.trackNum
         };
 
         // First half
         const updatedSource = {
           ...source,
-          speedEnd: seekerPosition * 0.1, //it's a special case, instead of newEnd I'm using seekerPosition
-          newEnd: seekerPosition * 0.1,
-          end: seekerPosition * 0.1,
+          speedEnd: Math.floor(seekerPosition / pixels[zoomTimeline]), //it's a special case, instead of newEnd I'm using seekerPosition
+          newEnd: Math.floor(seekerPosition / pixels[zoomTimeline]),
+          end: Math.floor(seekerPosition / pixels[zoomTimeline]),
           // zoomCenter: { x: 0, y: 0 },
           // zoomStart: null,
           // zoomDuration: null,
@@ -115,13 +127,14 @@ const Timeline = () => {
 
       return item.id !== selectedElement;
     });
-    setSourceAndTiming(updatedSourceAndTiming);
+    console.log("updated sandt", updatedSourceAndTiming);
+
+    setSourceAndTiming(() => [...updatedSourceAndTiming]);
     setIsDeleteMedia(true);
-    console.log("sourceandtiming", sourceAndTiming);
   };
   useEffect(() => {
     setCurrentSourceAndTiming(
-      getCurrentSources(sourceAndTiming, seekerPosition)
+      getCurrentSources(sourceAndTiming, seekerPosition, zoomTimeline)
     );
     console.log("from timeline: currentsandt", currentSourceAndTiming);
   }, [seekerPosition, sourceAndTiming]);
@@ -135,24 +148,36 @@ const Timeline = () => {
       <div>
         <button onClick={handleSplit}>Split</button>
         <button onClick={handleDeleteTrackMedia}>Delete</button>
+        <input
+          type="range"
+          min={0.5}
+          max={2}
+          step={0.5}
+          onChange={(e) => {
+            setZoomTimeline(Number(e.target.value));
+          }}
+        />
+        <label>{zoomTimeline}</label>
       </div>
 
       <Controls />
       <Seeker />
-      <Track
-        isSplit={isSplit}
-        setIsSplit={setIsSplit}
-        isDeleteMedia={isDeleteMedia}
-        setIsDeleteMedia={setIsDeleteMedia}
-        timelineWidth={timelineWidth}
-        setTimelineWidth={setTimelineWidth}
-      />
-      {/* <Track
-        isSplit={isSplit}
-        setIsSplit={setIsSplit}
-        isDeleteMedia={isDeleteMedia}
-        setIsDeleteMedia={setIsDeleteMedia}
-      /> */}
+      <div className="all-tracks">
+        <Track
+          isDeleteMedia={isDeleteMedia}
+          setIsDeleteMedia={setIsDeleteMedia}
+          timelineWidth={timelineWidth}
+          setTimelineWidth={setTimelineWidth}
+          trackNum={2}
+        />
+        <Track
+          isDeleteMedia={isDeleteMedia}
+          setIsDeleteMedia={setIsDeleteMedia}
+          timelineWidth={timelineWidth}
+          setTimelineWidth={setTimelineWidth}
+          trackNum={1}
+        />
+      </div>
     </div>
   );
 };

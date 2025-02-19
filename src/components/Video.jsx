@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import AppContext from "../AppContext";
 import { extractAudioFromBlobURL } from "../utils/extractAndDownloadAudio";
 import VideoPlayer from "./VideoPlayer";
+import { mediaType } from "../utils/MediaEnum";
 
 const Video = () => {
   const {
@@ -49,7 +50,7 @@ const Video = () => {
     if (!selectedElement) return;
 
     setIsSpeedChange(true);
-    const newSpeed = e.target.value;
+    const newSpeed = Number(e.target.value);
 
     // Update the state immutably
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
@@ -122,7 +123,7 @@ const Video = () => {
         return {
           ...item,
           zoomCenter: zoomCenter,
-          zoomStart: Math.ceil(Number(zoomStart - item.newStart)),
+          zoomStart: Math.floor(Number(zoomStart - item.newStart)),
           zoomDuration:
             Number(zoomDuration) > item.newEnd
               ? item.newEnd
@@ -212,17 +213,18 @@ const Video = () => {
     if (!videoRef || !videoRef.current) {
       return;
     }
-    if(seekerPosition * 0.1 < currentElement.newStart || seekerPosition * 0.1 > currentElement.newEnd){
+    if(Math.floor(seekerPosition * 0.1 )< currentElement.newStart || Math.floor(seekerPosition * 0.1 )> currentElement.newEnd){
       return;
     }
     videoRef.current.currentTime =
-      Math.floor(seekerPosition * 0.1 - currentElement.newStart) +
+      Math.floor(seekerPosition * 0.1) -
+      currentElement.newStart +
       currentElement.startsFrom;
 
   }, [seekerPositionManuallyChanged]);
   return (
     <div className="slidecontainer">
-      {selectedElement ? (
+      {selectedElement && currentElement.mediaType === mediaType.video ? (
         <>
           <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
             <label>Roundness:</label>

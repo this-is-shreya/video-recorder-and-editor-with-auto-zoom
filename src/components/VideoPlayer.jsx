@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 import AppContext from "../AppContext";
+import { pixels } from "../utils/PixelsPerSecondEnum";
 
-const VideoPlayer = () => {
+const VideoPlayer = ({ trackNum }) => {
   const {
     currentSourceAndTiming,
     isPlaying,
@@ -13,15 +14,20 @@ const VideoPlayer = () => {
     selectedElement,
     seekerPositionManuallyChanged,
     setSeekerPositionManuallyChanged,
+    isSplit,
+    zoomTimeline,
   } = useContext(AppContext);
 
   // Ensure there is valid video data
-  if (!currentSourceAndTiming || !currentSourceAndTiming[0]) {
+  const currentSourceAndTimingFiltered = currentSourceAndTiming.filter(
+    (item) => item.trackNum === trackNum
+  );
+  if (!currentSourceAndTiming || !currentSourceAndTimingFiltered[0]) {
     return null;
   }
 
   const [currentZoomLevel, setCurrentZoomLevel] = useState(1);
-  // const key = Object.keys(currentSourceAndTiming[0])[0];
+  // const key = Object.keys(currentSourceAndTimingFiltered)[0];
   const {
     source,
     start,
@@ -36,33 +42,29 @@ const VideoPlayer = () => {
     zoomLevel,
     startsFrom,
     volume,
-  } = currentSourceAndTiming[0];
+  } = currentSourceAndTimingFiltered[0];
   // console.log("currentsandt", currentSourceAndTiming);
   // Initialize state for position and size from currentSourceAndTiming
   const [position, setPosition] = useState(
-    currentSourceAndTiming[0].position || { x: 0, y: 0 }
+    currentSourceAndTimingFiltered[0].position || { x: 0, y: 0 }
   );
-  console.log("SIZE IS ", currentSourceAndTiming[0].size);
 
-  const [size, setSize] = useState(currentSourceAndTiming[0].size);
+  const [size, setSize] = useState(currentSourceAndTimingFiltered[0].size);
 
   const videoRef = useRef(null); // Reference to the video element
   const lastSeekerPosition = useRef(seekerPosition); // To track the last seeker position
   const lastIsPlaying = useRef(isPlaying); // To track the last isPlaying state
   const hasSetStartTime = useRef(false); // Flag to track if startTime has been set
   const [videoSource, setVideoSource] = useState(source); // To track video source changes
-  const [videoLoaded, setVideoLoaded] = useState(false)
-  console.log("SET SIZE ", size);
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
   // Update `currentSourceAndTiming` when size or position changes
   const updateContext = (newPosition, newSize) => {
-    console.log("NEW SIZE ", newSize);
-
     // setCurrentSourceAndTiming(updatedData);
 
     setSourceAndTiming((prev) =>
       prev.map((item) =>
-        item.id === currentSourceAndTiming[0].id
+        item.id === currentSourceAndTimingFiltered[0].id
           ? { ...item, position: newPosition, size: newSize }
           : item
       )
@@ -71,10 +73,10 @@ const VideoPlayer = () => {
   };
 
   // useEffect(() => {
-  //   if (currentSourceAndTiming[0]?.size) {
-  //     setSize(currentSourceAndTiming[0].size);
+  //   if (currentSourceAndTimingFiltered[0]?.size) {
+  //     setSize(currentSourceAndTimingFiltered[0].size);
   //   }
-  // }, [currentSourceAndTiming[0]?.size]); // Ensure it re-runs when size changes
+  // }, [currentSourceAndTimingFiltered[0]?.size]); // Ensure it re-runs when size changes
 
   // Control video playback based on `isPlaying` and seeker position
   // useEffect(() => {
@@ -135,6 +137,10 @@ const VideoPlayer = () => {
 
     const video = videoRef.current;
     video.volume = volume;
+
+    if (isSplit) {
+      hasSetStartTime.current = false;
+    }
     if (!videoSource || videoSource !== source) {
       console.log("New video loaded, updating start time");
       // videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
@@ -143,14 +149,14 @@ const VideoPlayer = () => {
       setVideoSource(source);
     }
     if (!hasSetStartTime.current) {
-      setTimeout(()=>{
+      setTimeout(() => {
         video.currentTime = startsFrom;
         hasSetStartTime.current = true;
-      }, 50)
+      }, 50);
     }
     video.onloadedmetadata = () => {
       setSize({ width: size.width, height: size.height });
-        setVideoLoaded(true);
+      setVideoLoaded(true);
     };
 
     // Set playback speed
@@ -160,7 +166,9 @@ const VideoPlayer = () => {
     if (seekerPositionManuallyChanged) {
       console.log("Seeking to:", seekerPosition);
       video.currentTime =
-        Math.floor(seekerPosition * 0.1 - newStart) + startsFrom;
+        Math.floor(seekerPosition / pixels[zoomTimeline]) -
+        newStart +
+        startsFrom;
       setSeekerPositionManuallyChanged(false);
     }
 
@@ -172,7 +180,7 @@ const VideoPlayer = () => {
     }
 
     lastSeekerPosition.current = seekerPosition;
-  }, [seekerPosition, isPlaying, speed]); // Removed unnecessary dependencies
+  }, [seekerPosition, isPlaying, speed, isSplit]); // Removed unnecessary dependencies
 
   //for applying zoom
   useEffect(() => {
@@ -180,8 +188,12 @@ const VideoPlayer = () => {
     if (!video) return;
 
     const handleTimeUpdate = () => {
-      const currentTime = Math.floor(seekerPosition * 0.1);
-        
+      const currentTime = Math.floor(seekerPosition / pixels[zoomTimeline]);
+
+      if (video.currentTime >= startsFrom + (newEnd - newStart)) {
+        video.pause();
+        // video.currentTime = startsFrom; // Reset to the start position
+      }
       if (zoomStart !== null && zoomDuration !== null) {
         if (
           currentTime >= Math.floor(newStart + zoomStart) &&
@@ -231,6 +243,10 @@ const VideoPlayer = () => {
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
         overflow: "hidden",
         backgroundColor: "black",
+        zIndex: trackNum,
+        borderRadius: `${(borderRadius / 100) * size.height}px / ${
+          (borderRadius / 100) * size.width
+        }px`, // Ensures proper rounding
       }}
       className={`${selectedElement}-preview`}
     >
@@ -256,9 +272,6 @@ const VideoPlayer = () => {
           transformOrigin: isPlaying
             ? `${zoomCenter.x * 100}% ${zoomCenter.y * 100}%`
             : "", // Set origin
-          borderRadius: `${(borderRadius / 100) * size.height}px / ${
-            (borderRadius / 100) * size.width
-          }px`, // Ensures proper rounding
         }}
       />
     </Rnd>

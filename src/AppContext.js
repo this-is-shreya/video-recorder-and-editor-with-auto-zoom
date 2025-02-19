@@ -18,7 +18,11 @@ const AppContext = createContext({
   convertToFormattedTime: () => {},
   videoPlayerRef: null,
   seekerPositionManuallyChanged: false,
-  setSeekerPositionManuallyChanged: ()=>{}
+  setSeekerPositionManuallyChanged: ()=>{},
+  zoomTimeline: null,
+  setZoomTimeline: ()=>{},
+  isSplit: null,
+  setIsSplit: ()=>{}
 });
 
 export default AppContext;

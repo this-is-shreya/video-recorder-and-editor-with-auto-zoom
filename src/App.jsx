@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import VideoExporter from "./components/VideoExporter";
 import VE from "./components/VE";
+import { pixels } from "./utils/PixelsPerSecondEnum";
 
 function App() {
   const [seekerPosition, setSeekerPosition] = useState(0);
@@ -21,9 +22,11 @@ function App() {
   const videoPlayerRef = useRef(null);
   const [seekerPositionManuallyChanged, setSeekerPositionManuallyChanged] =
     useState(false);
+  const [zoomTimeline, setZoomTimeline] = useState(1)//to be worked on
+  const [isSplit, setIsSplit] = useState(false)
 
   const convertToFormattedTime = (position) => {
-    const time = Math.ceil(position);
+    const time = Math.floor(position);
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
     const seconds = time % 60;
@@ -33,7 +36,7 @@ function App() {
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
   };
   useEffect(() => {
-    setCurrentTime(convertToFormattedTime(seekerPosition * 0.1));
+    setCurrentTime(convertToFormattedTime(seekerPosition / pixels[zoomTimeline]));
   }, [seekerPosition]);
 
   return (
@@ -56,14 +59,19 @@ function App() {
           setMaxTime: setMaxTime,
           convertToFormattedTime: convertToFormattedTime,
           videoPlayerRef: videoPlayerRef,
-          seekerPositionManuallyChanged:seekerPositionManuallyChanged,
-          setSeekerPositionManuallyChanged:setSeekerPositionManuallyChanged
+          seekerPositionManuallyChanged: seekerPositionManuallyChanged,
+          setSeekerPositionManuallyChanged: setSeekerPositionManuallyChanged,
+          zoomTimeline: zoomTimeline,
+          setZoomTimeline: setZoomTimeline,
+          isSplit: isSplit,
+          setIsSplit: setIsSplit,
         }}
       >
         <Navbar />
         <div className="video-preview">
           <div className="video-player" ref={videoPlayerRef}>
-            <VideoPlayer />
+            <VideoPlayer trackNum={2} />
+            <VideoPlayer trackNum={1} />
           </div>
           <div className="video-player-controls">
             <span>{currentTime}</span>

@@ -76,6 +76,7 @@ input[type="file"] {
   margin-left: 10vw;
   overflow-y: auto;
   overflow-x: auto;
+  width: 90vw;
 }
 .controls {
   width: 100%;
@@ -86,9 +87,8 @@ input[type="file"] {
 .track {
   display: flex;
   align-items: center;
-  height: 10vh;
+  height: 40px;
   border: 1px solid #ca1e1e;
-  position: relative;
   white-space: nowrap;
   overflow-x: auto;
 }
@@ -159,4 +159,10 @@ input[type="file"] {
   height: 25px;
   background: #04AA6D;
   cursor: pointer;
+}
+
+.all-tracks{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }

@@ -9,3 +9,9 @@ export const recordingType = Object.freeze({
     screen:"screen",
     screenAndCamera:"screen and camera"
 })
+
+export const mediaType = Object.freeze({
+    video: "video",
+    image: "image",
+    audio: "audio"
+})

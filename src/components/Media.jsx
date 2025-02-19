@@ -28,7 +28,7 @@ const Media = () => {
      const videoSrc = videoElement.getAttribute("src");
      e.dataTransfer.setData("text/plain", videoSrc);
      e.dataTransfer.setData("media-type", "video");
-     e.dataTransfer.setData("duration", Math.ceil(videoElement.duration));
+     e.dataTransfer.setData("duration", Math.floor(videoElement.duration));
    } else {
      // If metadata isn't loaded, listen for it
      videoElement.addEventListener(
@@ -37,7 +37,7 @@ const Media = () => {
          const videoSrc = videoElement.getAttribute("src");
          e.dataTransfer.setData("text/plain", videoSrc);
          e.dataTransfer.setData("media-type", "video");
-         e.dataTransfer.setData("duration", Math.ceil(videoElement.duration));
+         e.dataTransfer.setData("duration", Math.floor(videoElement.duration));
        },
        { once: true }
      ); // Ensures the event fires only once
@@ -50,7 +50,7 @@ const Media = () => {
         <FontAwesomeIcon icon={faFileUpload} /> Import File
         <input
           type="file"
-          accept=".mp4, .mp3, .jpg, .png, .webm, .ogg"
+          accept=".mp4, .mp3, .jpg, .png, .webm, .ogg, .jfif"
           multiple
           onChange={handleFileUpload}
         />

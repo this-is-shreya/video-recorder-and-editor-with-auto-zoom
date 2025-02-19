@@ -14,7 +14,7 @@ export const getMediaSrcAndType = (event) => {
         ? "audio"
         : "image";
       const src = URL.createObjectURL(file);
-      const duration = event.target.duration;
+      const duration = event.target.duration ?? 10;
       console.log("duration", duration, event);
       return { src, mediaType, duration };
     }
