@@ -480,10 +480,41 @@ const Track = ({
           disableDragging={!isDraggable}
           onResizeStart={() => setIsDraggable(false)}
           onDragStop={(e, data) => {
-            e.target.style.zIndex = ""; // Reset after drop
+            e.preventDefault();
+
+            // Get all track elements
+            const tracks = document.querySelectorAll(".track");
+            let validTrack = null;
+
+            // Loop through tracks and find where the RnD component is dropped
+            tracks.forEach((track) => {
+              const rect = track.getBoundingClientRect(); // Track position
+              const parentRect = track.parentElement.getBoundingClientRect(); // Container position
+
+              // Convert RnD's relative Y position (data.y) to absolute Y position
+              const dropY = data.y + parentRect.top; // Adjust for container's offset
+
+              console.log(
+                "dropY:",
+                dropY,
+                "Track top:",
+                rect.top,
+                "Track bottom:",
+                rect.bottom
+              );
+
+              if (dropY >= rect.top && dropY + 40 <= rect.bottom) {
+                validTrack = track;
+              }
+            });
+
+            // If not inside any track, return without handling the drop
+            if (!validTrack) {
+              console.log("Dropped in between tracks! Reverting...");
+              return;
+            }
 
             handleDragStop(m.id, e, data);
-            // console.log(e.target.parent, "e is ", e.target.closest(".track"));
           }}
           onResizeStop={(e, direction, ref, delta, position) => {
             handleResizeStop(m.id, e, direction, ref, delta, position);
