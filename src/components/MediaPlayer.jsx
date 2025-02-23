@@ -2,8 +2,9 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 import AppContext from "../AppContext";
 import { pixels } from "../utils/PixelsPerSecondEnum";
+import { mediaType } from "../utils/MediaEnum";
 
-const VideoPlayer = ({ trackNum }) => {
+const MediaPlayer = ({ trackNum }) => {
   const {
     currentSourceAndTiming,
     isPlaying,
@@ -16,12 +17,15 @@ const VideoPlayer = ({ trackNum }) => {
     setSeekerPositionManuallyChanged,
     isSplit,
     zoomTimeline,
+    isTrim,
+    setIsTrim
   } = useContext(AppContext);
 
   // Ensure there is valid video data
   const currentSourceAndTimingFiltered = currentSourceAndTiming.filter(
     (item) => item.trackNum === trackNum
   );
+  console.log("MP: ", currentSourceAndTimingFiltered, trackNum);
   if (!currentSourceAndTiming || !currentSourceAndTimingFiltered[0]) {
     return null;
   }
@@ -52,10 +56,12 @@ const VideoPlayer = ({ trackNum }) => {
   const [size, setSize] = useState(currentSourceAndTimingFiltered[0].size);
 
   const videoRef = useRef(null); // Reference to the video element
+  const audioRef = useRef(null); // Reference to the audio element
   const lastSeekerPosition = useRef(seekerPosition); // To track the last seeker position
   const lastIsPlaying = useRef(isPlaying); // To track the last isPlaying state
   const hasSetStartTime = useRef(false); // Flag to track if startTime has been set
   const [videoSource, setVideoSource] = useState(source); // To track video source changes
+  const [audioSource, setAudioSource] = useState(source); // To track audio source changes
   const [videoLoaded, setVideoLoaded] = useState(false);
 
   // Update `currentSourceAndTiming` when size or position changes
@@ -138,8 +144,11 @@ const VideoPlayer = ({ trackNum }) => {
     const video = videoRef.current;
     video.volume = volume;
 
-    if (isSplit) {
-      hasSetStartTime.current = false;
+    if (!hasSetStartTime.current) {
+      setTimeout(() => {
+        video.currentTime = startsFrom;
+        hasSetStartTime.current = true;
+      }, 50);
     }
     if (!videoSource || videoSource !== source) {
       console.log("New video loaded, updating start time");
@@ -147,12 +156,6 @@ const VideoPlayer = ({ trackNum }) => {
       // if (isPlaying) videoRef.current.play();
       hasSetStartTime.current = false;
       setVideoSource(source);
-    }
-    if (!hasSetStartTime.current) {
-      setTimeout(() => {
-        video.currentTime = startsFrom;
-        hasSetStartTime.current = true;
-      }, 50);
     }
     video.onloadedmetadata = () => {
       setSize({ width: size.width, height: size.height });
@@ -163,13 +166,14 @@ const VideoPlayer = ({ trackNum }) => {
     video.playbackRate = speed;
 
     // Only seek if the user manually scrubs
-    if (seekerPositionManuallyChanged) {
+    if (seekerPositionManuallyChanged || isSplit || isTrim) {
       console.log("Seeking to:", seekerPosition);
       video.currentTime =
         Math.floor(seekerPosition / pixels[zoomTimeline]) -
         newStart +
         startsFrom;
       setSeekerPositionManuallyChanged(false);
+      setIsTrim(false)
     }
 
     // Handle playing/pausing
@@ -180,6 +184,65 @@ const VideoPlayer = ({ trackNum }) => {
     }
 
     lastSeekerPosition.current = seekerPosition;
+  }, [seekerPosition, isPlaying, speed, isSplit, isTrim]); // Removed unnecessary dependencies
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    const audio = audioRef.current;
+    audio.volume = volume;
+
+    if (isSplit) {
+      hasSetStartTime.current = false;
+    }
+    if (!audioSource || audioSource !== source) {
+      console.log("New audio loaded, updating start time");
+      // audioRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
+      // if (isPlaying) audioRef.current.play();
+      hasSetStartTime.current = false;
+      setAudioSource(source);
+    }
+    if (!hasSetStartTime.current) {
+      setTimeout(() => {
+        audio.currentTime = startsFrom;
+        hasSetStartTime.current = true;
+      }, 50);
+    }
+
+    // Set playback speed
+    audio.playbackRate = speed;
+
+    // Only seek if the user manually scrubs
+    if (seekerPositionManuallyChanged) {
+      console.log("Seeking to:", seekerPosition);
+      audio.currentTime =
+        Math.floor(seekerPosition / pixels[zoomTimeline]) -
+        newStart +
+        startsFrom;
+      setSeekerPositionManuallyChanged(false);
+    }
+
+    // Handle playing/pausing
+    if (isPlaying) {
+      audio.play().catch((error) => console.warn("Playback error:", error));
+    } else {
+      audio.pause();
+    }
+    lastSeekerPosition.current = seekerPosition;
+
+    const handleTimeUpdate = () => {
+      if (audio.currentTime >= newEnd) {
+        console.log("Reached end time, stopping playback");
+        audio.pause();
+        audio.currentTime = newEnd; // Ensure it doesn't go beyond
+      }
+    };
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+    };
   }, [seekerPosition, isPlaying, speed, isSplit]); // Removed unnecessary dependencies
 
   //for applying zoom
@@ -250,32 +313,47 @@ const VideoPlayer = ({ trackNum }) => {
       }}
       className={`${selectedElement}-preview`}
     >
-      <video
-        key={source}
-        ref={videoRef}
-        src={source}
-        autoPlay={false}
-        muted={false}
-        crossOrigin="anonymous"
-        onLoadedMetadata={() => setVideoLoaded(true)}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          display: "block",
-          opacity: videoLoaded ? 1 : 0, // Avoid display issues
-          visibility: videoLoaded ? "visible" : "hidden",
-          transition: `transform 0.3s ease-in-out, border-radius 0.3s ease-in-out`, // Apply transition to both transform and border-radius
-          transform: isPlaying
-            ? `scale(${currentZoomLevel}, ${currentZoomLevel})`
-            : "",
-          transformOrigin: isPlaying
-            ? `${zoomCenter.x * 100}% ${zoomCenter.y * 100}%`
-            : "", // Set origin
-        }}
-      />
+      {currentSourceAndTiming[0].mediaType === mediaType.video && (
+        <video
+          key={source}
+          ref={videoRef}
+          src={source}
+          autoPlay={false}
+          muted={false}
+          crossOrigin="anonymous"
+          onLoadedMetadata={() => setVideoLoaded(true)}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+            opacity: videoLoaded ? 1 : 0, // Avoid display issues
+            visibility: videoLoaded ? "visible" : "hidden",
+            transition: `transform 0.3s ease-in-out, border-radius 0.3s ease-in-out`, // Apply transition to both transform and border-radius
+            transform: isPlaying
+              ? `scale(${currentZoomLevel}, ${currentZoomLevel})`
+              : "",
+            transformOrigin: isPlaying
+              ? `${zoomCenter.x * 100}% ${zoomCenter.y * 100}%`
+              : "", // Set origin
+          }}
+        />
+      )}
+      {currentSourceAndTiming[0].mediaType === mediaType.image && (
+        <img
+          src={source}
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "block",
+          }}
+        ></img>
+      )}
+      {currentSourceAndTiming[0].mediaType === mediaType.audio && (
+        <audio src={source} autoPlay={false} ref={audioRef}></audio>
+      )}
     </Rnd>
   );
 };
 
-export default VideoPlayer;
+export default MediaPlayer;

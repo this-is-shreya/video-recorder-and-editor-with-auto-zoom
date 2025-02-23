@@ -3,7 +3,7 @@ import "./App.css";
 import AppContext from "./AppContext";
 import Navbar from "./components/Navbar";
 import Timeline from "./components/timeline/Timeline";
-import VideoPlayer from "./components/VideoPlayer";
+import MediaPlayer from "./components/MediaPlayer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import VideoExporter from "./components/VideoExporter";
@@ -22,8 +22,9 @@ function App() {
   const videoPlayerRef = useRef(null);
   const [seekerPositionManuallyChanged, setSeekerPositionManuallyChanged] =
     useState(false);
-  const [zoomTimeline, setZoomTimeline] = useState(1)//to be worked on
-  const [isSplit, setIsSplit] = useState(false)
+  const [zoomTimeline, setZoomTimeline] = useState(1); //to be worked on
+  const [isSplit, setIsSplit] = useState(false);
+  const [isTrim, setIsTrim] = useState(false);
 
   const convertToFormattedTime = (position) => {
     const time = Math.floor(position);
@@ -36,7 +37,9 @@ function App() {
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
   };
   useEffect(() => {
-    setCurrentTime(convertToFormattedTime(seekerPosition / pixels[zoomTimeline]));
+    setCurrentTime(
+      convertToFormattedTime(seekerPosition / pixels[zoomTimeline])
+    );
   }, [seekerPosition]);
 
   return (
@@ -65,13 +68,15 @@ function App() {
           setZoomTimeline: setZoomTimeline,
           isSplit: isSplit,
           setIsSplit: setIsSplit,
+          isTrim: isTrim,
+          setIsTrim: setIsTrim
         }}
       >
         <Navbar />
         <div className="video-preview">
           <div className="video-player" ref={videoPlayerRef}>
-            <VideoPlayer trackNum={2} />
-            <VideoPlayer trackNum={1} />
+            <MediaPlayer trackNum={2} />
+            <MediaPlayer trackNum={1} />
           </div>
           <div className="video-player-controls">
             <span>{currentTime}</span>

@@ -85,8 +85,8 @@ input[type="file"] {
   position: relative;
 }
 .track {
-  display: flex;
-  align-items: center;
+  /* display: block; */
+  /* align-items: center; */
   height: 40px;
   border: 1px solid #ca1e1e;
   white-space: nowrap;

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import AppContext from "../AppContext";
 import { extractAudioFromBlobURL } from "../utils/extractAndDownloadAudio";
-import VideoPlayer from "./VideoPlayer";
+import MediaPlayer from "./MediaPlayer";
 import { mediaType } from "../utils/MediaEnum";
 
 const Video = () => {
@@ -12,6 +12,8 @@ const Video = () => {
     setIsSpeedChange,
     seekerPosition,
     seekerPositionManuallyChanged,
+    isSplit,
+    isPlaying
   } = useContext(AppContext);
   const [currentElement, setCurrentElement] = useState(
     sourceAndTiming.find((item) => item.id === selectedElement)
@@ -213,18 +215,20 @@ const Video = () => {
     if (!videoRef || !videoRef.current) {
       return;
     }
-    if(Math.floor(seekerPosition * 0.1 )< currentElement.newStart || Math.floor(seekerPosition * 0.1 )> currentElement.newEnd){
+    if (
+      Math.floor(seekerPosition * 0.1) < currentElement.newStart ||
+      Math.floor(seekerPosition * 0.1) > currentElement.newEnd
+    ) {
       return;
     }
     videoRef.current.currentTime =
       Math.floor(seekerPosition * 0.1) -
       currentElement.newStart +
       currentElement.startsFrom;
-
-  }, [seekerPositionManuallyChanged]);
+  }, [seekerPositionManuallyChanged, isSplit, isPlaying]);
   return (
     <div className="slidecontainer">
-      {selectedElement && currentElement.mediaType === mediaType.video ? (
+      {selectedElement && currentElement?.mediaType === mediaType.video ? (
         <>
           <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
             <label>Roundness:</label>
@@ -357,7 +361,7 @@ const Video = () => {
                   style={{
                     width: "290px", // Preview size
                     // aspectRatio: "16/9",
-                    height:"180px",
+                    height: "180px",
                     marginRight: "10px",
                     border: "2px solid #ccc",
                     position: "relative",

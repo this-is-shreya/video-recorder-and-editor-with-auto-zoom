@@ -1,6 +1,7 @@
 import { faFileUpload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import React, { useState } from "react";
+import { mediaType } from "../utils/MediaEnum";
 
 const Media = () => {
   const [files, setFiles] = useState([]);
@@ -20,29 +21,33 @@ const Media = () => {
     });
   };
   // console.log("files", files);
- const handleDragStart = (e) => {
-   const videoElement = e.target;
+  const handleDragStart = (e, _mediaType, preview) => {
+    const element =
+      _mediaType === mediaType.audio
+        ? e.currentTarget.querySelector("audio")
+        : e.target;
 
-   // Ensure metadata is loaded before accessing duration
-   if (videoElement.readyState >= 1) {
-     const videoSrc = videoElement.getAttribute("src");
-     e.dataTransfer.setData("text/plain", videoSrc);
-     e.dataTransfer.setData("media-type", "video");
-     e.dataTransfer.setData("duration", Math.floor(videoElement.duration));
-   } else {
-     // If metadata isn't loaded, listen for it
-     videoElement.addEventListener(
-       "loadedmetadata",
-       () => {
-         const videoSrc = videoElement.getAttribute("src");
-         e.dataTransfer.setData("text/plain", videoSrc);
-         e.dataTransfer.setData("media-type", "video");
-         e.dataTransfer.setData("duration", Math.floor(videoElement.duration));
-       },
-       { once: true }
-     ); // Ensures the event fires only once
-   }
- };
+    // Ensure metadata is loaded before accessing duration
+    if (element.readyState >= 1 || _mediaType !== mediaType.video) {
+      console.log("duration", element.duration)
+      const src = preview;
+      e.dataTransfer.setData("text/plain", src);
+      e.dataTransfer.setData("media-type", _mediaType);
+      e.dataTransfer.setData("duration", Math.floor(element.duration ?? 10));
+    } else {
+      // If metadata isn't loaded, listen for it
+      element.addEventListener(
+        "loadedmetadata",
+        () => {
+          const videoSrc = preview;
+          e.dataTransfer.setData("text/plain", videoSrc);
+          e.dataTransfer.setData("media-type", "video");
+          e.dataTransfer.setData("duration", Math.floor(element.duration));
+        },
+        { once: true }
+      ); // Ensures the event fires only once
+    }
+  };
 
   return (
     <div className="panel">
@@ -64,7 +69,9 @@ const Media = () => {
               <video
                 src={fileObj.preview}
                 draggable
-                onDragStart={handleDragStart}
+                onDragStart={(e) =>
+                  handleDragStart(e, mediaType.video, fileObj.preview)
+                }
                 preload="metadata"
                 onLoadedMetadata={(e) => {
                   if (e.target.duration === Infinity) {
@@ -82,10 +89,41 @@ const Media = () => {
               />
             )}
             {fileObj.file.type.startsWith("audio") && (
-              <audio src={fileObj.preview} controls />
+              <div
+                draggable
+                onDragStart={(e) =>
+                  handleDragStart(e, mediaType.audio, fileObj.preview)
+                }
+              >
+                <span>🎵</span>
+                <audio
+                  src={fileObj.preview}
+                  preload="metadata"
+                  onLoadedMetadata={(e) => {
+                    if (e.target.duration === Infinity) {
+                      // Force browser to calculate duration by seeking to the end
+                      e.target.currentTime = Number.MAX_SAFE_INTEGER;
+                      e.target.ontimeupdate = () => {
+                        e.target.ontimeupdate = null;
+                        console.log("Actual Duration:", e.target.duration);
+                        e.target.currentTime = 0; // Reset to the beginning
+                      };
+                    } else {
+                      console.log("Duration:", e.target.duration);
+                    }
+                  }}
+                />
+              </div>
             )}
+
             {fileObj.file.type.startsWith("image") && (
-              <img src={fileObj.preview} />
+              <img
+                src={fileObj.preview}
+                draggable
+                onDragStart={(e) =>
+                  handleDragStart(e, mediaType.image, fileObj.preview)
+                }
+              />
             )}
             <p>{fileObj.file.name}</p>
             <button onClick={() => removeFile(index)}>Remove</button>

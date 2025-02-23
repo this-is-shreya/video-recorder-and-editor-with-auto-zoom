@@ -9,6 +9,9 @@ import { pixels } from "../../utils/PixelsPerSecondEnum";
 const Timeline = () => {
   const intervalRef = useRef(null);
   const [isDeleteMedia, setIsDeleteMedia] = useState(false);
+    const [positions, setPositions] = useState({}); // Store positions and sizes
+    const [elements, setElements] = useState([]); // Store element IDs
+  
   const [timelineWidth, setTimelineWidth] = useState(
     (90 * window.innerWidth) / 100
   );
@@ -77,20 +80,21 @@ const Timeline = () => {
         seekerPosition / pixels[zoomTimeline] >= source.newStart &&
         seekerPosition / pixels[zoomTimeline] <= source.newEnd
       ) {
+        const roundedTime = Math.floor(seekerPosition / pixels[zoomTimeline]);
         // Second half (new split segment)
         const newSource = {
           ...source,
           id: Date.now(),
-          start: Math.floor(seekerPosition / pixels[zoomTimeline]) + 1,
-          newStart: Math.floor(seekerPosition / pixels[zoomTimeline]) + 1,
-          speedStart: Math.floor(seekerPosition / pixels[zoomTimeline]) + 1,
-          trackX: seekerPosition,
+          start: roundedTime,
+          newStart: roundedTime,
+          speedStart: roundedTime,
+          trackX: source.trackX + Math.floor(roundedTime - source.newStart) * pixels[zoomTimeline] + 1,
           // zoomCenter: { x: 0, y: 0 },
           // zoomStart: null,
           // zoomDuration: null,
           // zoomLevel: 1,
           startsFrom:
-            Math.floor(seekerPosition / pixels[zoomTimeline]) -
+            roundedTime -
             source.newStart +
             source.startsFrom,
           trackNum: source.trackNum
@@ -99,15 +103,15 @@ const Timeline = () => {
         // First half
         const updatedSource = {
           ...source,
-          speedEnd: Math.floor(seekerPosition / pixels[zoomTimeline]), //it's a special case, instead of newEnd I'm using seekerPosition
-          newEnd: Math.floor(seekerPosition / pixels[zoomTimeline]),
-          end: Math.floor(seekerPosition / pixels[zoomTimeline]),
+          speedEnd: roundedTime, //it's a special case, instead of newEnd I'm using seekerPosition
+          newEnd: roundedTime,
+          end: roundedTime,
           // zoomCenter: { x: 0, y: 0 },
           // zoomStart: null,
           // zoomDuration: null,
           // zoomLevel: 1
         };
-        console.log("new sources are ", newSource, updatedSource);
+        console.log(">>new sources are ", newSource, updatedSource);
 
         newSources.push(newSource, updatedSource);
       } else {
@@ -169,6 +173,10 @@ const Timeline = () => {
           timelineWidth={timelineWidth}
           setTimelineWidth={setTimelineWidth}
           trackNum={2}
+          elements={elements}
+          setElements={setElements}
+          positions={positions}
+          setPositions={setPositions}
         />
         <Track
           isDeleteMedia={isDeleteMedia}
@@ -176,6 +184,10 @@ const Timeline = () => {
           timelineWidth={timelineWidth}
           setTimelineWidth={setTimelineWidth}
           trackNum={1}
+          elements={elements}
+          setElements={setElements}
+          positions={positions}
+          setPositions={setPositions}
         />
       </div>
     </div>
