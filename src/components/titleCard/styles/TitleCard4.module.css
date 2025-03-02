@@ -1,0 +1,103 @@
+* {
+  box-sizing: border-box;
+}
+
+.titleCard {
+  padding: 0;
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  color: white;
+  overflow: hidden;
+  background-color: #1B1B1B;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Wrappers for text */
+.upperWrap, .lowerWrap {
+  overflow: hidden;
+  height: 30px;
+  line-height: 30px;
+  width: 300px;
+  font-weight: 700;
+}
+
+/* Upper text animation */
+.upper {
+  font-size: 24px;
+  text-transform: uppercase;
+  animation: slideInUpper 1s ease-in-out forwards, slideOutUpper 1s ease-in-out 4s forwards;
+}
+
+/* Lower text animation */
+.lower {
+  font-size: 18px;
+  animation: slideInLower 1s ease-in-out forwards, slideOutLower 1s ease-in-out 4s forwards;
+}
+
+/* Line animation */
+.line {
+  width: 0px;
+  height: 1px;
+  background: white;
+  animation: expandLine 1s ease-in-out forwards, shrinkLine 1s ease-in-out 4s forwards;
+}
+
+/* Animations for Entrance */
+@keyframes slideInUpper {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLower {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes expandLine {
+  from {
+    width: 0;
+  }
+  to {
+    width: 300px;
+  }
+}
+
+/* Animations for Exit */
+@keyframes slideOutUpper {
+  to {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+}
+
+@keyframes slideOutLower {
+  to {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+}
+
+@keyframes shrinkLine {
+  to {
+    width: 0;
+    opacity: 0;
+  }
+}

@@ -6,14 +6,15 @@ import Timeline from "./components/timeline/Timeline";
 import MediaPlayer from "./components/MediaPlayer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
-import VideoExporter from "./components/VideoExporter";
-import VE from "./components/VE";
 import { pixels } from "./utils/PixelsPerSecondEnum";
+import TextEffect from "./components/TextEffect";
 
 function App() {
   const [seekerPosition, setSeekerPosition] = useState(0);
   const [sourceAndTiming, setSourceAndTiming] = useState([]);
   const [currentSourceAndTiming, setCurrentSourceAndTiming] = useState([]);
+  const [effectsAndTiming, setEffectsAndTiming] = useState([]);
+  const [currentEffectsAndTiming, setCurrentEffectsAndTiming] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedElement, setSelectedElement] = useState(null);
   const [isSpeedChange, setIsSpeedChange] = useState(false);
@@ -52,6 +53,10 @@ function App() {
           setSourceAndTiming: setSourceAndTiming,
           currentSourceAndTiming: currentSourceAndTiming,
           setCurrentSourceAndTiming: setCurrentSourceAndTiming,
+          effectsAndTiming: effectsAndTiming,
+          setEffectsAndTiming: setEffectsAndTiming,
+          currentEffectsAndTiming: currentEffectsAndTiming,
+          setCurrentEffectsAndTiming: setCurrentEffectsAndTiming,
           isPlaying: isPlaying,
           setIsPlaying: setIsPlaying,
           selectedElement: selectedElement,
@@ -69,12 +74,14 @@ function App() {
           isSplit: isSplit,
           setIsSplit: setIsSplit,
           isTrim: isTrim,
-          setIsTrim: setIsTrim
+          setIsTrim: setIsTrim,
         }}
       >
         <Navbar />
+
         <div className="video-preview">
           <div className="video-player" ref={videoPlayerRef}>
+            <TextEffect />
             <MediaPlayer trackNum={2} />
             <MediaPlayer trackNum={1} />
           </div>

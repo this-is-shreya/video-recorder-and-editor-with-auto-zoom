@@ -18,7 +18,7 @@ const MediaPlayer = ({ trackNum }) => {
     isSplit,
     zoomTimeline,
     isTrim,
-    setIsTrim
+    setIsTrim,
   } = useContext(AppContext);
 
   // Ensure there is valid video data
@@ -57,6 +57,7 @@ const MediaPlayer = ({ trackNum }) => {
 
   const videoRef = useRef(null); // Reference to the video element
   const audioRef = useRef(null); // Reference to the audio element
+  const imgRef = useRef(null); // Reference to the img element
   const lastSeekerPosition = useRef(seekerPosition); // To track the last seeker position
   const lastIsPlaying = useRef(isPlaying); // To track the last isPlaying state
   const hasSetStartTime = useRef(false); // Flag to track if startTime has been set
@@ -78,67 +79,8 @@ const MediaPlayer = ({ trackNum }) => {
     console.log("Updated Context with New Size:", newSize);
   };
 
-  // useEffect(() => {
-  //   if (currentSourceAndTimingFiltered[0]?.size) {
-  //     setSize(currentSourceAndTimingFiltered[0].size);
-  //   }
-  // }, [currentSourceAndTimingFiltered[0]?.size]); // Ensure it re-runs when size changes
-
-  // Control video playback based on `isPlaying` and seeker position
-  // useEffect(() => {
-  //   console.log("video players: ", currentSourceAndTiming);
-
-  //   if (videoRef.current) {
-  //     const startTime = calculateStartTime();
-  //     videoRef.current.playbackRate = speed;
-  //     // Set startTime only once when not playing
-  //     if (!hasSetStartTime.current) {
-  //       console.log("Setting startTime:", startsFrom);
-  //       // videoRef.current.currentTime = startsFrom;
-  //       videoRef.current.currentTime = Math.floor(seekerPosition*0.1 - newStart) + startsFrom;
-
-  //       hasSetStartTime.current = true; // Mark start time as set
-  //       if (isPlaying) videoRef.current.play();
-  //     }
-  //     if(isPlaying && lastIsPlaying.current && Math.abs(seekerPosition - lastSeekerPosition.current) >= 2){
-  //       // videoRef.current.currentTime = Math.floor(startTime - newStart);
-  //       videoRef.current.currentTime = Math.floor(seekerPosition*0.1 - newStart) + startsFrom;
-
-  //       // videoRef.current.play();
-  //     }
-  //     // Control video playback state based on `isPlaying`
-  //     if (isPlaying && !lastIsPlaying.current) {
-  //       // console.log("Starting video playback");
-  //       // videoRef.current.currentTime = Math.floor(seekerPosition*0.1 - newStart) + startsFrom;
-
-  //       videoRef.current.play().catch((error) => {
-  //         console.warn("Playback error:", error);
-  //       });
-  //     } else if (!isPlaying && lastIsPlaying.current) {
-  //       // console.log("Pausing video playback");
-  //       videoRef.current.pause();
-  //       // hasSetStartTime.current = false; // Reset the start time
-  //     }
-  //     if (!videoSource || videoSource !== source) {
-  //       console.log("New video loaded, updating start time");
-  //       videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
-  //       if (isPlaying) videoRef.current.play();
-  //       setVideoSource(source);
-  //     }
-  //     if (!isPlaying) {
-  //       hasSetStartTime.current = false; // Reset the start time
-  //     }
-  //     // Update the last known state of isPlaying
-  //     lastIsPlaying.current = isPlaying;
-
-  //     // Update last known seeker position only if it's changed significantly
-  //     if (Math.abs(seekerPosition - lastSeekerPosition.current) > 1) {
-  //       lastSeekerPosition.current = seekerPosition;
-  //     }
-  //   }
-  // }, [isPlaying, seekerPosition, videoRef]); // Re-run when isPlaying or seekerPosition changes
-
-  useEffect(() => {
+//for video
+useEffect(() => {
     if (!videoRef.current) return;
 
     const video = videoRef.current;
@@ -173,7 +115,7 @@ const MediaPlayer = ({ trackNum }) => {
         newStart +
         startsFrom;
       setSeekerPositionManuallyChanged(false);
-      setIsTrim(false)
+      setIsTrim(false);
     }
 
     // Handle playing/pausing
@@ -184,8 +126,9 @@ const MediaPlayer = ({ trackNum }) => {
     }
 
     lastSeekerPosition.current = seekerPosition;
-  }, [seekerPosition, isPlaying, speed, isSplit, isTrim]); // Removed unnecessary dependencies
+  }, [seekerPosition, isPlaying, speed, isSplit, isTrim]);
 
+//for audio
   useEffect(() => {
     if (!audioRef.current) return;
 
@@ -243,7 +186,7 @@ const MediaPlayer = ({ trackNum }) => {
     return () => {
       audio.removeEventListener("timeupdate", handleTimeUpdate);
     };
-  }, [seekerPosition, isPlaying, speed, isSplit]); // Removed unnecessary dependencies
+  }, [seekerPosition, isPlaying, speed]);
 
   //for applying zoom
   useEffect(() => {
@@ -342,6 +285,7 @@ const MediaPlayer = ({ trackNum }) => {
       {currentSourceAndTiming[0].mediaType === mediaType.image && (
         <img
           src={source}
+          ref={imgRef}
           style={{
             width: "100%",
             height: "100%",

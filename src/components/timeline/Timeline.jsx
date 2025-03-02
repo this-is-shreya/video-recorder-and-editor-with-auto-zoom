@@ -23,6 +23,9 @@ const Timeline = () => {
     setSourceAndTiming,
     currentSourceAndTiming,
     setCurrentSourceAndTiming,
+    effectsAndTiming,
+    setEffectsAndTiming,
+    setCurrentEffectsAndTiming,
     isPlaying,
     selectedElement,
     setSelectedElement,
@@ -125,23 +128,40 @@ const Timeline = () => {
   };
   const handleDeleteTrackMedia = () => {
     if (!selectedElement) return;
+    const isSource = sourceAndTiming.find(item=>item.id==selectedElement)
+    if(isSource){
+      const updatedSourceAndTiming = sourceAndTiming.filter((item) => {
+        console.log("item", item, selectedElement);
+  
+        return item.id !== selectedElement;
+      });
+      console.log("updated sandt", updatedSourceAndTiming);
+      setSourceAndTiming(() => [...updatedSourceAndTiming]);
+    }
+    else{
+      const updatedEffectsAndTiming = effectsAndTiming.filter((item) => {
+        console.log("item", item, selectedElement);
 
-    const updatedSourceAndTiming = sourceAndTiming.filter((item) => {
-      console.log("item", item, selectedElement);
-
-      return item.id !== selectedElement;
-    });
-    console.log("updated sandt", updatedSourceAndTiming);
-
-    setSourceAndTiming(() => [...updatedSourceAndTiming]);
+        return item.id !== selectedElement;
+      });
+      console.log("updated sandt", updatedEffectsAndTiming);
+      setEffectsAndTiming(() => [...updatedEffectsAndTiming]);
+    }
     setIsDeleteMedia(true);
   };
   useEffect(() => {
     setCurrentSourceAndTiming(
       getCurrentSources(sourceAndTiming, seekerPosition, zoomTimeline)
     );
+
     console.log("from timeline: currentsandt", currentSourceAndTiming);
   }, [seekerPosition, sourceAndTiming]);
+  useEffect(()=>{
+    setCurrentEffectsAndTiming(
+      getCurrentSources(effectsAndTiming, seekerPosition, zoomTimeline)
+    );
+  },[seekerPosition, effectsAndTiming])
+  
   return (
     <div
       className="timeline"

@@ -225,7 +225,7 @@ const Video = () => {
       Math.floor(seekerPosition * 0.1) -
       currentElement.newStart +
       currentElement.startsFrom;
-  }, [seekerPositionManuallyChanged, isSplit, isPlaying]);
+  }, [seekerPositionManuallyChanged, isSplit, isPlaying, seekerPosition]);
   return (
     <div className="slidecontainer">
       {selectedElement && currentElement?.mediaType === mediaType.video ? (

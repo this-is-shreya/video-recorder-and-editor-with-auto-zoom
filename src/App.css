@@ -40,7 +40,7 @@
 }
 .media-container {
   display: flex;
-  /* flex-wrap: wrap; */
+  flex-wrap: wrap;
   flex-direction: row;
   margin-top: 10px;
   gap: 10px;
@@ -50,7 +50,7 @@
   border: 1px solid #ccc;
   padding: 5px;
   text-align: center;
-  width: 130px;
+  width: 100px;
 
   video,
   audio,
