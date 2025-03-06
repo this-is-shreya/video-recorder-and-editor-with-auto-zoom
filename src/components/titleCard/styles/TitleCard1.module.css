@@ -19,7 +19,7 @@
   width: 6px;
   background: #ff1212;
   top: 0;
-  left: 0;
+  left: 10px;
   opacity: 0;
   transform: translateX(-150px);
   -webkit-animation: title-border-slide-in 0.35s ease-out forwards;

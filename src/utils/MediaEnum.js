@@ -2,7 +2,8 @@ export const navbarObject = Object.freeze({
     media:"media",
     record:"record",
     video:"video",
-    text:"text"
+    text:"text",
+    textSettings:"textSettings"
 })
 
 export const recordingType = Object.freeze({

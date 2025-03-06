@@ -25,6 +25,7 @@ const Timeline = () => {
     setCurrentSourceAndTiming,
     effectsAndTiming,
     setEffectsAndTiming,
+    currentEffectsAndTiming,
     setCurrentEffectsAndTiming,
     isPlaying,
     selectedElement,
@@ -73,13 +74,13 @@ const Timeline = () => {
   // });
   // };
   const handleSplit = () => {
-    if (selectedElement === null) return;
+    if (selectedElement.id === null) return;
 
     let newSources = [];
 
     sourceAndTiming.forEach((source) => {
       if (
-        source.id === selectedElement &&
+        source.id === selectedElement.id &&
         seekerPosition / pixels[zoomTimeline] >= source.newStart &&
         seekerPosition / pixels[zoomTimeline] <= source.newEnd
       ) {
@@ -128,12 +129,12 @@ const Timeline = () => {
   };
   const handleDeleteTrackMedia = () => {
     if (!selectedElement) return;
-    const isSource = sourceAndTiming.find(item=>item.id==selectedElement)
+    const isSource = sourceAndTiming.find(item=>item.id==selectedElement.id)
     if(isSource){
       const updatedSourceAndTiming = sourceAndTiming.filter((item) => {
         console.log("item", item, selectedElement);
   
-        return item.id !== selectedElement;
+        return item.id !== selectedElement.id;
       });
       console.log("updated sandt", updatedSourceAndTiming);
       setSourceAndTiming(() => [...updatedSourceAndTiming]);
@@ -142,7 +143,7 @@ const Timeline = () => {
       const updatedEffectsAndTiming = effectsAndTiming.filter((item) => {
         console.log("item", item, selectedElement);
 
-        return item.id !== selectedElement;
+        return item.id !== selectedElement.id;
       });
       console.log("updated sandt", updatedEffectsAndTiming);
       setEffectsAndTiming(() => [...updatedEffectsAndTiming]);
@@ -160,6 +161,8 @@ const Timeline = () => {
     setCurrentEffectsAndTiming(
       getCurrentSources(effectsAndTiming, seekerPosition, zoomTimeline)
     );
+    console.log("from timeline: currentEffectsAndTiming", currentEffectsAndTiming);
+    
   },[seekerPosition, effectsAndTiming])
   
   return (

@@ -35,6 +35,12 @@ const Navbar = () => {
         >
           <FontAwesomeIcon icon={faFont} size="xl" />
         </button>
+        <button
+          className="navbar-option"
+          onClick={() => setActiveState(navbarObject.textSettings)}
+        >
+          <FontAwesomeIcon icon={faFont} size="xl" />
+        </button>
       </div>
       <Panel panelType={activeState} />
     </div>

@@ -129,7 +129,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 51%;
+  width: 100%;
   height: 100%;
   overflow: hidden;
 }
@@ -142,7 +142,7 @@
   position: absolute;
   top: 0;
   right: 0;
-  width: 50%;
+  width: 100%;
   height: 100%;
   overflow: hidden;
 }
@@ -150,6 +150,11 @@
   transform: translateX(-200%);
   -webkit-animation: text-right 6s ease-in-out infinite;
           animation: text-right 6s ease-in-out infinite;
+}
+.textRight .inner,
+.textLeft .inner {
+  display: inline-block; /* Ensures text moves as a unit */
+  white-space: nowrap;   /* Prevents spaces from breaking animation */
 }
 @-webkit-keyframes slash {
   0% {

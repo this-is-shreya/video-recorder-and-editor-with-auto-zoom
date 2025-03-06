@@ -16,7 +16,7 @@ function App() {
   const [effectsAndTiming, setEffectsAndTiming] = useState([]);
   const [currentEffectsAndTiming, setCurrentEffectsAndTiming] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedElement, setSelectedElement] = useState(null);
+  const [selectedElement, setSelectedElement] = useState({});
   const [isSpeedChange, setIsSpeedChange] = useState(false);
   const [currentTime, setCurrentTime] = useState("00:00:00");
   const [maxTime, setMaxTime] = useState("00:00:00");

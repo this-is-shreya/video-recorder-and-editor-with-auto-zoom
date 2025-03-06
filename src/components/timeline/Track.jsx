@@ -40,13 +40,16 @@ const Track = ({
 
   const handleDrop = (e) => {
     e.preventDefault();
-    const { src, mediaType, duration } = getMediaSrcAndType(e);
+    const obj = getMediaSrcAndType(e);    
+    const src = obj.src;
+    const _mediaType = obj.mediaType;
+    const duration = obj.duration;
     const id = Date.now();
     const trackRect = e.target.getBoundingClientRect();
     const x = e.clientX - trackRect.left; // Position relative to the track
     const y = 0; // Fixed y-coordinate
     const width = duration * pixels[zoomTimeline]; // Default width based on duration
-
+    
     // Check for overlap
     const isOverlapping = checkOverlap(
       { left: x, right: x + width },
@@ -57,14 +60,14 @@ const Track = ({
 
     if (!isOverlapping) {
       setElements((prev) => [...prev, { id, trackNum }]);
-      setTrackMedia([...trackMedia, { id, src, mediaType, duration }]);
+      setTrackMedia([...trackMedia, { id, src, mediaType: _mediaType, duration }]);
       setPositions((prev) => ({
         ...prev,
         [id]: { x, y, width },
       }));
 
-      if (mediaType !== "effects") {
-        console.log("entered here for ", mediaType);
+      if (_mediaType !== mediaType.effects) {
+        console.log("entered here for ", _mediaType);
 
         setSourceAndTiming((prev) => [
           ...prev,
@@ -80,7 +83,7 @@ const Track = ({
             position: { x: 0, y: 0 },
             size: { width: "30vw", height: "35vh" },
             trackX: x,
-            mediaType: mediaType,
+            mediaType: _mediaType,
             borderRadius: "0",
             speed: 1,
             zoomCenter: prev.zoomCenter ? prev.zoomCenter : { x: 0, y: 0 },
@@ -106,8 +109,17 @@ const Track = ({
             end: Math.floor(x / pixels[zoomTimeline]) + Number(duration),
             newEnd: Math.floor(x / pixels[zoomTimeline]) + Number(duration),
             speedEnd: Math.floor(x / pixels[zoomTimeline]) + Number(duration),
-            mediaType: mediaType,
+            mediaType: _mediaType,
             trackNum: trackNum,
+            position: { x: 0, y: 0 },
+            size: { width: "30vw", height: "35vh" },
+            text: "Sample text",
+            fontStyle: null,
+            fontSize: "14",
+            textColor:"#000000",
+            backgroundColor:"#ffffff",
+            animation:"",
+            isBackgroundTransparent:false
           },
         ]);
       }
@@ -365,13 +377,13 @@ const Track = ({
   }, [isSplit]);
 
   useEffect(() => {
-    const source = sourceAndTiming.find((item) => item.id === selectedElement);
+    const source = sourceAndTiming.find((item) => item.id === selectedElement.id);
     if (!source) return;
 
     setPositions((prev) => ({
       ...prev,
-      [selectedElement]: {
-        ...prev[selectedElement],
+      [selectedElement.id]: {
+        ...prev[selectedElement.id],
         width: Math.floor(
           ((source.newEnd - source.newStart) * pixels[zoomTimeline]) /
             source.speed
@@ -380,16 +392,11 @@ const Track = ({
     }));
 
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement) {
+      if (item.id === selectedElement.id) {
         const speedEnd = Math.floor(item.newEnd - item.newStart) / item.speed;
         return {
           ...item,
           speedEnd: Math.floor(item.newStart + speedEnd),
-          // newEnd: Math.floor(item.newStart + speedEnd)
-          // zoomCenter: { x: 0, y: 0 },
-          // zoomStart: null,
-          // zoomDuration: null,
-          // zoomLevel: 1,
         };
       }
       return item;
@@ -406,7 +413,7 @@ const Track = ({
     }
     let tracks = [];
     sourceAndTiming.forEach((source) => {
-      if (source.id !== selectedElement && source.trackNum === trackNum) {
+      if (source.id !== selectedElement.id && source.trackNum === trackNum) {
         tracks.push({
           id: source.id,
           src: source.source,
@@ -416,7 +423,7 @@ const Track = ({
       }
     });
     effectsAndTiming.forEach((effect) => {
-      if (effect.id !== selectedElement && effect.trackNum === trackNum) {
+      if (effect.id !== selectedElement.id && effect.trackNum === trackNum) {
         tracks.push({
           id: effect.id,
           src: effect.source,
@@ -431,7 +438,7 @@ const Track = ({
       const newState = prev;
       console.log("OLD POSITION", newState);
 
-      delete newState[selectedElement];
+      delete newState[selectedElement.id];
       console.log("NEW POSITION", newState);
 
       return newState;
@@ -440,18 +447,18 @@ const Track = ({
     setElements((prev) => {
       console.log("every element", prev);
 
-      return prev.filter((item) => item.id !== selectedElement);
+      return prev.filter((item) => item.id !== selectedElement.id);
     });
     setTrackMedia(() => {
       return [...tracks];
     });
-    setSelectedElement(null);
+    setSelectedElement({});
     setIsDeleteMedia(false);
     console.log("POSITIONS ", positions, "track media ", tracks);
   }, [isDeleteMedia]);
 
   useEffect(() => {
-    console.log("new S&T", sourceAndTiming);
+    console.log("new S&T", sourceAndTiming, trackMedia);
 
     let maxNewEnd = sourceAndTiming.reduce(
       (max, obj) => Math.max(max, obj.newEnd),
@@ -471,19 +478,6 @@ const Track = ({
   ]);
 
   useEffect(() => {
-    // const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-    //   return {
-    //     ...item,
-    //     newStart: Number(((item.newStart / prevZoom) * zoomTimeline).toFixed(1)),
-    //     newEnd: Number(((item.newEnd / prevZoom) * zoomTimeline).toFixed(1)),
-    //     start: Number(((item.start / prevZoom) * zoomTimeline).toFixed(1)),
-    //     end: Number(((item.end / prevZoom) * zoomTimeline).toFixed(1)),
-    //     speedStart: Number(((item.speedStart / prevZoom) * zoomTimeline).toFixed(
-    //       1
-    //     )),
-    //     speedEnd: Number(((item.speedEnd / prevZoom) * zoomTimeline).toFixed(1)),
-    //   };
-    // });
     const updatedPosition = Object.fromEntries(
       Object.entries(positions).map(([key, item]) => [
         key, // Keep the original key
@@ -496,13 +490,9 @@ const Track = ({
     );
 
     setPositions(updatedPosition);
-    // setSourceAndTiming([...updatedSourceAndTiming]);
     setPrevZoom(zoomTimeline);
   }, [zoomTimeline]);
 
-  useEffect(() => {
-    console.log(">>elem", elements);
-  }, [elements]);
   return (
     <div
       className="track"
@@ -518,99 +508,99 @@ const Track = ({
         }
       }
     >
-      {trackMedia.map((m) => (
-        <Rnd
-          key={m.id}
-          size={{
-            width: positions[m.id]?.width || 100,
-            height: 40,
-          }}
-          bounds={".all-tracks"}
-          position={{
-            x: positions[m.id]?.x || 0,
-            y: positions[m.id]?.y || 0,
-          }}
-          enableResizing={{
-            left: m.mediaType !== mediaType.effects,
-            right: m.mediaType !== mediaType.effects,
-            top: false,
-            bottom: false,
-          }}
-          disableDragging={!isDraggable}
-          onResize={(e, direction, ref, delta, position) => {
-            // ref.style.position = "fixed";
-          }}
-          onResizeStart={() => setIsDraggable(false)}
-          onResizeStop={(e, direction, ref, delta, position) => {
-            handleResizeStop(m.id, e, direction, ref, delta, position);
-            setIsDraggable(true);
-          }}
-          onDragStart={(e, data) => {
-            const width = positions[m.id]?.width || 100;
-            if (data.x + width > timelineWidth) {
-              console.log("ans ", data.x + width);
+      {trackMedia
+        .filter((m) => positions[m.id] && !isNaN(positions[m.id]?.width))
+        .map((m) => (
+          <Rnd
+            key={m.id}
+            size={{
+              width: positions[m.id]?.width || 100,
+              height: 40,
+            }}
+            bounds={".all-tracks"}
+            position={{
+              x: positions[m.id]?.x || 0,
+              y: positions[m.id]?.y || 0,
+            }}
+            enableResizing={{
+              left: m.mediaType !== mediaType.effects,
+              right: m.mediaType !== mediaType.effects,
+              top: false,
+              bottom: false,
+            }}
+            disableDragging={!isDraggable}
+            onResize={(e, direction, ref, delta, position) => {
+              // ref.style.position = "fixed";
+            }}
+            onResizeStart={() => setIsDraggable(false)}
+            onResizeStop={(e, direction, ref, delta, position) => {
+              handleResizeStop(m.id, e, direction, ref, delta, position);
+              setIsDraggable(true);
+            }}
+            onDragStart={(e, data) => {
+              const width = positions[m.id]?.width || 100;
+              if (data.x + width > timelineWidth) {
+                console.log("ans ", data.x + width);
 
-              setTimelineWidth(data.x + width); // Expand dynamically
-            }
-          }}
-          onDragStop={(e, data) => {
-            e.preventDefault();
-            // const elements = document.elementsFromPoint(e.clientX, e.clientY);
-            // const containers = elements.filter((el) =>
-            //   el.classList.contains("track")
-            // );
+                setTimelineWidth(data.x + width); // Expand dynamically
+              }
+            }}
+            onDragStop={(e, data) => {
+              e.preventDefault();
+              const t = e.target.getBoundingClientRect();
+              console.log("t->", t);
 
-            // if (containers.length == 0) {
-            //   return;
-            // }
-            // const { y } = data; // Dragged element’s y position
-            const t = e.target.getBoundingClientRect();
-            console.log("t->", t);
+              let newTrackNum = null;
 
-            let newTrackNum = null;
-            // const allTracks = document.getElementsByClassName("all-tracks")[0].getBoundingClientRect();
+              for (let i = 1; i <= 2; i++) {
+                const trackElement = document.getElementById(`track-${i}`);
+                if (trackElement) {
+                  const rect = trackElement.getBoundingClientRect();
 
-            for (let i = 1; i <= 2; i++) {
-              const trackElement = document.getElementById(`track-${i}`);
-              if (trackElement) {
-                const rect = trackElement.getBoundingClientRect();
-
-                if (t.top >= rect.top && t.top + 40 <= rect.bottom) {
-                  newTrackNum = i; // Set new track number
+                  if (t.top >= rect.top && t.top + 40 <= rect.bottom) {
+                    newTrackNum = i; // Set new track number
+                  }
                 }
               }
-            }
-            if (!newTrackNum) {
-              return;
-            }
-            if (newTrackNum !== null) {
-              setElements((prevElements) =>
-                prevElements.map((el) =>
-                  el.id === m.id ? { ...el, trackNum: newTrackNum } : el
-                )
-              );
-              handleDragStop(m.id, e, data, newTrackNum);
-            }
-          }}
-        >
-          <div
-            id={m.id}
-            className="track-video"
-            style={{
-              width: `${positions[m.id]?.width}px`,
-              height: "100%",
-              backgroundColor: "rgb(63, 166, 245)",
-              borderRadius: "4px",
-              position: "absolute",
-              border:
-                selectedElement === m.id ? "2px solid red" : "2px solid black",
+              if (!newTrackNum) {
+                return;
+              }
+              if (newTrackNum !== null) {
+                setElements((prevElements) =>
+                  prevElements.map((el) =>
+                    el.id === m.id ? { ...el, trackNum: newTrackNum } : el
+                  )
+                );
+                handleDragStop(m.id, e, data, newTrackNum);
+              }
             }}
-            onClick={() => setSelectedElement(m.id)}
           >
-            {positions[m.id]?.width * zoomTimeline}
-          </div>
-        </Rnd>
-      ))}
+            <div
+              id={m.id}
+              className="track-video"
+              style={{
+                width: `${positions[m.id]?.width}px`,
+                height: "100%",
+                backgroundColor: "rgb(63, 166, 245)",
+                borderRadius: "4px",
+                position: "absolute",
+                border:
+                  selectedElement.id === m.id
+                    ? "2px solid red"
+                    : "2px solid black",
+              }}
+              onClick={() =>
+                setSelectedElement({
+                  id: m.id,
+                  src: m.src,
+                  mediaType: m.mediaType,
+                })
+              }
+            >
+              {positions[m.id]?.width * zoomTimeline}
+            </div>
+          </Rnd>
+        ))}
     </div>
   );
 };

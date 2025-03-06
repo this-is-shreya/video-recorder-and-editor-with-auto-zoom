@@ -254,7 +254,7 @@ useEffect(() => {
           (borderRadius / 100) * size.width
         }px`, // Ensures proper rounding
       }}
-      className={`${selectedElement}-preview`}
+      className={`${selectedElement.id}-preview`}
     >
       {currentSourceAndTiming[0].mediaType === mediaType.video && (
         <video

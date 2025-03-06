@@ -125,8 +125,8 @@ input[type="file"] {
   margin-top: 20px;
   display: flex;
   flex-direction: column;
-  gap:10px;
-  padding:10px;
+  gap: 10px;
+  padding: 10px;
   border: 1px solid #ddd;
   overflow-y: auto;
 }
@@ -137,8 +137,8 @@ input[type="file"] {
   background: #d3d3d3;
   outline: none;
   opacity: 0.7;
-  -webkit-transition: .2s;
-  transition: opacity .2s;
+  -webkit-transition: 0.2s;
+  transition: opacity 0.2s;
 }
 
 .slider:hover {
@@ -150,18 +150,18 @@ input[type="file"] {
   appearance: none;
   width: 25px;
   height: 25px;
-  background: #04AA6D;
+  background: #04aa6d;
   cursor: pointer;
 }
 
 .slider::-moz-range-thumb {
   width: 25px;
   height: 25px;
-  background: #04AA6D;
+  background: #04aa6d;
   cursor: pointer;
 }
 
-.all-tracks{
+.all-tracks {
   display: flex;
   flex-direction: column;
   gap: 10px;

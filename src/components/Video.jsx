@@ -16,7 +16,7 @@ const Video = () => {
     isPlaying
   } = useContext(AppContext);
   const [currentElement, setCurrentElement] = useState(
-    sourceAndTiming.find((item) => item.id === selectedElement)
+    sourceAndTiming.find((item) => item.id === selectedElement.id)
   );
   const [borderRadius, setBorderRadius] = useState(0);
   const [speed, setSpeed] = useState(1);
@@ -40,7 +40,7 @@ const Video = () => {
 
     // Update the state immutably
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement) {
+      if (item.id === selectedElement.id) {
         return { ...item, borderRadius: newBorderRadius };
       }
       return item;
@@ -56,7 +56,7 @@ const Video = () => {
 
     // Update the state immutably
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement) {
+      if (item.id === selectedElement.id) {
         return { ...item, speed: newSpeed };
       }
       return item;
@@ -68,7 +68,7 @@ const Video = () => {
     if (!selectedElement) return;
     // Update the state immutably
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement) {
+      if (item.id === selectedElement.id) {
         return { ...item, volume: Number(e.target.value) / 100 };
       }
       return item;
@@ -121,7 +121,7 @@ const Video = () => {
     );
 
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement) {
+      if (item.id === selectedElement.id) {
         return {
           ...item,
           zoomCenter: zoomCenter,
@@ -150,7 +150,7 @@ const Video = () => {
     setzoomDuration(0);
     setZoomLevel(1);
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement) {
+      if (item.id === selectedElement.id) {
         return {
           ...item,
           zoomCenter: { x: 0, y: 0 },
@@ -174,7 +174,7 @@ const Video = () => {
   useEffect(() => {
     if (selectedElement) {
       const selectedItem = sourceAndTiming.find(
-        (item) => item.id === selectedElement
+        (item) => item.id === selectedElement.id
       );
       if (selectedItem) {
         setBorderRadius(selectedItem.borderRadius || 0);
@@ -207,7 +207,7 @@ const Video = () => {
 
   useEffect(() => {
     setCurrentElement(
-      sourceAndTiming.find((item) => item.id === selectedElement)
+      sourceAndTiming.find((item) => item.id === selectedElement.id)
     );
   }, [selectedElement, sourceAndTiming]);
 
@@ -279,7 +279,7 @@ const Video = () => {
             <button
               onClick={() => {
                 extractAudioFromBlobURL(
-                  sourceAndTiming.find((item) => item.id === selectedElement)
+                  sourceAndTiming.find((item) => item.id === selectedElement.id)
                     .source
                 );
               }}
