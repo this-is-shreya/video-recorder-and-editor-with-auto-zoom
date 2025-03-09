@@ -3,7 +3,10 @@ import { getMediaSrcAndType } from "../../utils/getMediaSrcAndType";
 import { Rnd } from "react-rnd";
 import AppContext from "../../AppContext";
 import { pixels } from "../../utils/PixelsPerSecondEnum";
-import { mediaType } from "../../utils/MediaEnum";
+import { mediaType, transitionType } from "../../utils/MediaEnum";
+import { FaBolt } from "react-icons/fa";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBolt } from "@fortawesome/free-solid-svg-icons";
 
 const Track = ({
   isDeleteMedia,
@@ -35,12 +38,11 @@ const Track = ({
     setIsTrim,
   } = useContext(AppContext);
   const [trackMedia, setTrackMedia] = useState([]); // Store media data
-  const [isDraggable, setIsDraggable] = useState(true);
   const [prevZoom, setPrevZoom] = useState(zoomTimeline);
 
   const handleDrop = (e) => {
     e.preventDefault();
-    const obj = getMediaSrcAndType(e);    
+    const obj = getMediaSrcAndType(e);
     const src = obj.src;
     const _mediaType = obj.mediaType;
     const duration = obj.duration;
@@ -49,7 +51,7 @@ const Track = ({
     const x = e.clientX - trackRect.left; // Position relative to the track
     const y = 0; // Fixed y-coordinate
     const width = duration * pixels[zoomTimeline]; // Default width based on duration
-    
+
     // Check for overlap
     const isOverlapping = checkOverlap(
       { left: x, right: x + width },
@@ -60,7 +62,10 @@ const Track = ({
 
     if (!isOverlapping) {
       setElements((prev) => [...prev, { id, trackNum }]);
-      setTrackMedia([...trackMedia, { id, src, mediaType: _mediaType, duration }]);
+      setTrackMedia([
+        ...trackMedia,
+        { id, src, mediaType: _mediaType, duration },
+      ]);
       setPositions((prev) => ({
         ...prev,
         [id]: { x, y, width },
@@ -93,6 +98,11 @@ const Track = ({
             startsFrom: 0,
             volume: 1,
             trackNum: trackNum,
+            transitionFromSource: null,
+            transitionFromId: null,
+            transitionToSource: null,
+            transitionToId: null,
+            transitionType: null,
           },
         ]);
       } else {
@@ -116,10 +126,10 @@ const Track = ({
             text: "Sample text",
             fontStyle: null,
             fontSize: "14",
-            textColor:"#000000",
-            backgroundColor:"#ffffff",
-            animation:"",
-            isBackgroundTransparent:false
+            textColor: "#000000",
+            backgroundColor: "#ffffff",
+            animation: "",
+            isBackgroundTransparent: false,
           },
         ]);
       }
@@ -377,7 +387,9 @@ const Track = ({
   }, [isSplit]);
 
   useEffect(() => {
-    const source = sourceAndTiming.find((item) => item.id === selectedElement.id);
+    const source = sourceAndTiming.find(
+      (item) => item.id === selectedElement.id
+    );
     if (!source) return;
 
     setPositions((prev) => ({
@@ -528,21 +540,48 @@ const Track = ({
               top: false,
               bottom: false,
             }}
-            disableDragging={!isDraggable}
             onResize={(e, direction, ref, delta, position) => {
               // ref.style.position = "fixed";
             }}
-            onResizeStart={() => setIsDraggable(false)}
             onResizeStop={(e, direction, ref, delta, position) => {
               handleResizeStop(m.id, e, direction, ref, delta, position);
-              setIsDraggable(true);
             }}
             onDragStart={(e, data) => {
-              const width = positions[m.id]?.width || 100;
-              if (data.x + width > timelineWidth) {
-                console.log("ans ", data.x + width);
+              // const width = positions[m.id]?.width || 100;
+              // if (data.x + width > timelineWidth) {
+              //   console.log("ans ", data.x + width);
 
-                setTimelineWidth(data.x + width); // Expand dynamically
+              //   setTimelineWidth(data.x + width); // Expand dynamically
+              // }
+              if (m.mediaType === mediaType.video) {
+                const currentSource = sourceAndTiming.find(
+                  (item) => item.id === m.id
+                );
+                if (!currentSource.transitionFromId) {
+                  return;
+                }
+                const prevSource = sourceAndTiming.find(
+                  (item) => item.transitionToId === currentSource?.id
+                );
+                const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+                  if (item.id === currentSource?.id) {
+                    return {
+                      ...item,
+                      transitionFromId: null,
+                      transitionFromSource: "",
+                    };
+                  } else if (item.id === prevSource?.id) {
+                    return {
+                      ...item,
+                      transitionToId: null,
+                      transitionToSource: "",
+                      transitionType: null,
+                    };
+                  }
+                  return item;
+                });
+
+                setSourceAndTiming(updatedSourceAndTiming);
               }
             }}
             onDragStop={(e, data) => {
@@ -597,6 +636,9 @@ const Track = ({
                 })
               }
             >
+              {sourceAndTiming.find((item) => item.id === m.id)
+                ?.transitionFromId && <FontAwesomeIcon icon={faBolt} />}
+
               {positions[m.id]?.width * zoomTimeline}
             </div>
           </Rnd>

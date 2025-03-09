@@ -1,0 +1,44 @@
+.transition-container {
+  position: relative;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+.transition-overlay {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  animation: blur-fade-in 0.8s ease-out forwards,
+    blur-fade-out 0.8s ease-in forwards 2s;
+  z-index: 9999;
+  height: 100%;
+  width: 100%;
+}
+
+/* Animations */
+@keyframes blur-fade-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(20px);
+  }
+}
+
+@keyframes blur-fade-out {
+  from {
+    opacity: 1;
+    backdrop-filter: blur(20px);
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+}

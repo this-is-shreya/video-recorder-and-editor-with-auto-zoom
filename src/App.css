@@ -98,6 +98,8 @@ input[type="file"] {
   width: 40vw;
   aspect-ratio: 16/9;
   background-color: #0f0f0f;
+  position: relative;
+  
 }
 .video-preview {
   display: flex;

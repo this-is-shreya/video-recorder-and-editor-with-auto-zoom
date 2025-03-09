@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { pixels } from "./utils/PixelsPerSecondEnum";
 import TextEffect from "./components/TextEffect";
+import MediaPlayerContainer from "./components/MediaPlayerContainer";
 
 function App() {
   const [seekerPosition, setSeekerPosition] = useState(0);
@@ -82,8 +83,9 @@ function App() {
         <div className="video-preview">
           <div className="video-player" ref={videoPlayerRef}>
             <TextEffect />
-            <MediaPlayer trackNum={2} />
-            <MediaPlayer trackNum={1} />
+            {/* <MediaPlayer trackNum={2} /> */}
+            <MediaPlayerContainer trackNum={2} />
+            <MediaPlayerContainer trackNum={1} />
           </div>
           <div className="video-player-controls">
             <span>{currentTime}</span>

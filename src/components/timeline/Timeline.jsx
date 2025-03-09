@@ -55,7 +55,6 @@ const Timeline = () => {
       const time = convertToFormattedTime(
         Math.floor(seekerPosition / pixels[zoomTimeline])
       );
-      console.log("TIME AS PER SEEKER IS ", time);
 
       if (time >= maxTime) {
         clearInterval(intervalRef.current);
@@ -155,13 +154,11 @@ const Timeline = () => {
       getCurrentSources(sourceAndTiming, seekerPosition, zoomTimeline)
     );
 
-    console.log("from timeline: currentsandt", currentSourceAndTiming);
   }, [seekerPosition, sourceAndTiming]);
   useEffect(()=>{
     setCurrentEffectsAndTiming(
       getCurrentSources(effectsAndTiming, seekerPosition, zoomTimeline)
     );
-    console.log("from timeline: currentEffectsAndTiming", currentEffectsAndTiming);
     
   },[seekerPosition, effectsAndTiming])
   

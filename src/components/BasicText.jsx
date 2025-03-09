@@ -4,8 +4,12 @@ import { Rnd } from "react-rnd";
 import "animate.css";
 
 const BasicText = () => {
-  const { effectsAndTiming, setEffectsAndTiming, selectedElement, currentEffectsAndTiming } =
-    useContext(AppContext);
+  const {
+    effectsAndTiming,
+    setEffectsAndTiming,
+    selectedElement,
+    currentEffectsAndTiming,
+  } = useContext(AppContext);
   if (!effectsAndTiming || !effectsAndTiming[0]) {
     console.log("No effects and timing");
     return;
@@ -14,30 +18,37 @@ const BasicText = () => {
   if (!currentEffectsAndTiming) {
     return null; // Exit early if no matching element is found
   }
-  const { trackNum } = currentEffectsAndTiming[0];
+  const currentEffectsAndTimingFiltered = currentEffectsAndTiming.find(item=>item.source.includes("text-basic"));
+  const trackNum = currentEffectsAndTimingFiltered.trackNum
   const [size, setSize] = useState(
-    currentEffectsAndTiming[0].size || { width: 200, height: 100 }
+    currentEffectsAndTimingFiltered.size || { width: 200, height: 100 }
   );
   const [clicked, setClicked] = useState(false);
   const [position, setPosition] = useState(
-    currentEffectsAndTiming[0].position || { x: 0, y: 0 }
+    currentEffectsAndTimingFiltered.position || { x: 0, y: 0 }
   );
-  const [text, setText] = useState(currentEffectsAndTiming[0].text);
-  const [fontStyle, setFontStyle] = useState(currentEffectsAndTiming[0].fontStyle);
-  const [fontSize, setFontSize] = useState(currentEffectsAndTiming[0].fontSize);
-  const [textColor, setTextColor] = useState(currentEffectsAndTiming[0].textColor);
+  const [text, setText] = useState(currentEffectsAndTimingFiltered.text);
+  const [fontStyle, setFontStyle] = useState(
+    currentEffectsAndTimingFiltered.fontStyle
+  );
+  const [fontSize, setFontSize] = useState(currentEffectsAndTimingFiltered.fontSize);
+  const [textColor, setTextColor] = useState(
+    currentEffectsAndTimingFiltered.textColor
+  );
   const [backgroundColor, setBackgroundColor] = useState(
-    currentEffectsAndTiming[0].backgroundColor
+    currentEffectsAndTimingFiltered.backgroundColor
   );
-  const [animation, setAnimation] = useState(currentEffectsAndTiming[0].animation);
+  const [animation, setAnimation] = useState(
+    currentEffectsAndTimingFiltered.animation
+  );
   const [isBackgroundTransparent, setIsBackgroundTransparent] = useState(
-    currentEffectsAndTiming[0].isBackgroundTransparent
+    currentEffectsAndTimingFiltered.isBackgroundTransparent
   );
 
   const updateContext = (newPosition, newSize) => {
     setEffectsAndTiming((prev) =>
       prev.map((item) =>
-        item.id === currentEffectsAndTiming[0].id
+        item.id === currentEffectsAndTimingFiltered.id
           ? { ...item, position: newPosition, size: newSize }
           : item
       )
@@ -45,16 +56,17 @@ const BasicText = () => {
     console.log("Updated Context with New Size:", newSize);
   };
   useEffect(() => {
-    setText(currentEffectsAndTiming[0].text);
-    setFontStyle(currentEffectsAndTiming[0].fontStyle);
-    setFontSize(currentEffectsAndTiming[0].fontSize);
-    setTextColor(currentEffectsAndTiming[0].textColor);
-    setBackgroundColor(currentEffectsAndTiming[0].backgroundColor);
-    setAnimation(currentEffectsAndTiming[0].animation);
-    setIsBackgroundTransparent(currentEffectsAndTiming[0].isBackgroundTransparent);
-  console.log("Current Effects and Timing is ", currentEffectsAndTiming[0]);
-      
-  }, [effectsAndTiming]);
+    setText(currentEffectsAndTimingFiltered.text);
+    setFontStyle(currentEffectsAndTimingFiltered.fontStyle);
+    setFontSize(currentEffectsAndTimingFiltered.fontSize);
+    setTextColor(currentEffectsAndTimingFiltered.textColor);
+    setBackgroundColor(currentEffectsAndTimingFiltered.backgroundColor);
+    setAnimation(currentEffectsAndTimingFiltered.animation);
+    setIsBackgroundTransparent(
+      currentEffectsAndTimingFiltered.isBackgroundTransparent
+    );
+    console.log("Current Effects and Timing is ", currentEffectsAndTimingFiltered);
+  }, [currentEffectsAndTimingFiltered]);
   return (
     <div
       onClick={() => {
@@ -92,20 +104,25 @@ const BasicText = () => {
             : backgroundColor,
           zIndex: trackNum,
           border: clicked ? "2px solid purple" : "",
+
         }}
-        className={`${selectedElement.id}-preview`}
+        className={`${selectedElement.id}-preview animate__animated ${animation}`}
       >
-        <div
+        <span
+          className={`animate__animated ${animation}`}
           style={{
             color: textColor,
             padding: "10px",
             textAlign: "center",
             fontSize: fontSize + "px",
             fontFamily: fontStyle,
+            display: "inline-block",
+            position:"absolute",
+            overflow:"hidden"
           }}
         >
-          <h1 className={`animate__animated ${animation}`}>{text}</h1>
-        </div>
+          {text}
+        </span>
       </Rnd>
     </div>
   );

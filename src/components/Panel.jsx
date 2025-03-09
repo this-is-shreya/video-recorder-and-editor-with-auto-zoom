@@ -5,6 +5,8 @@ import Media from "./Media";
 import Video from "./Video";
 import TextEffectPanel from "./TextEffectPanel";
 import TextEffectSettings from "./TextEffectSettings";
+import TransitionPanel from "./TransitionPanel";
+import BackgroundPanel from "./BackgroundPanel";
 
 const Panel = (props) => {
   return (
@@ -13,7 +15,9 @@ const Panel = (props) => {
       {props.panelType === navbarObject.media && <Media />}
       {props.panelType === navbarObject.video && <Video />}
       {props.panelType === navbarObject.text && <TextEffectPanel />}
-      {props.panelType === navbarObject.textSettings && <TextEffectSettings/>}
+      {props.panelType === navbarObject.textSettings && <TextEffectSettings />}
+      {props.panelType === navbarObject.transition && <TransitionPanel />}
+      {props.panelType === navbarObject.background && <BackgroundPanel />}
     </>
   );
 };

@@ -3,8 +3,9 @@ import { Rnd } from "react-rnd";
 import AppContext from "../AppContext";
 import { pixels } from "../utils/PixelsPerSecondEnum";
 import { mediaType } from "../utils/MediaEnum";
+import Transition1 from "./transitions/Transition1";
 
-const MediaPlayer = ({ trackNum }) => {
+const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
   const {
     currentSourceAndTiming,
     isPlaying,
@@ -46,6 +47,8 @@ const MediaPlayer = ({ trackNum }) => {
     zoomLevel,
     startsFrom,
     volume,
+    transitionType,
+    transitionFromId,
   } = currentSourceAndTimingFiltered[0];
   // console.log("currentsandt", currentSourceAndTiming);
   // Initialize state for position and size from currentSourceAndTiming
@@ -79,8 +82,8 @@ const MediaPlayer = ({ trackNum }) => {
     console.log("Updated Context with New Size:", newSize);
   };
 
-//for video
-useEffect(() => {
+  //for video
+  useEffect(() => {
     if (!videoRef.current) return;
 
     const video = videoRef.current;
@@ -128,7 +131,7 @@ useEffect(() => {
     lastSeekerPosition.current = seekerPosition;
   }, [seekerPosition, isPlaying, speed, isSplit, isTrim]);
 
-//for audio
+  //for audio
   useEffect(() => {
     if (!audioRef.current) return;
 
@@ -219,6 +222,19 @@ useEffect(() => {
     return () => video.removeEventListener("timeupdate", handleTimeUpdate);
   }, [zoomStart, zoomDuration, zoomLevel, seekerPosition]);
 
+  //for transition
+  useEffect(() => {
+    if (
+      newEnd - Math.floor(seekerPosition / pixels[zoomTimeline]) <= 1 &&
+      transitionType != null
+    ) {
+      setIsTransitioning(true);
+      setTransitionType(transitionType)
+      console.log(">> set transition", transitionType);
+      
+    }
+   
+  }, [seekerPosition]);
   return (
     <Rnd
       size={{ width: size.width, height: size.height }}

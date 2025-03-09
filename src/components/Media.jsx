@@ -55,7 +55,7 @@ const Media = () => {
         <FontAwesomeIcon icon={faFileUpload} /> Import File
         <input
           type="file"
-          accept=".mp4, .mp3, .jpg, .png, .webm, .ogg, .jfif"
+          accept=".mp4, .mp3, .jpg, .png, .webm, .ogg"
           multiple
           onChange={handleFileUpload}
         />
