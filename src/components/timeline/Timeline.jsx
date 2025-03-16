@@ -5,17 +5,31 @@ import Controls from "./Controls";
 import { getCurrentSources } from "../../utils/getCurrentSources";
 import AppContext from "../../AppContext";
 import { pixels } from "../../utils/PixelsPerSecondEnum";
+import { mediaType } from "../../utils/MediaEnum";
 
-const Timeline = () => {
-  const intervalRef = useRef(null);
-  const [isDeleteMedia, setIsDeleteMedia] = useState(false);
-    const [positions, setPositions] = useState({}); // Store positions and sizes
-    const [elements, setElements] = useState([]); // Store element IDs
-  
-  const [timelineWidth, setTimelineWidth] = useState(
-    (90 * window.innerWidth) / 100
-  );
+const useKeyPress = (key, callback, withCtrl = false) => {
+  const callbackRef = useRef(callback);
 
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (withCtrl ? event.ctrlKey && event.key === key : event.key === key) {
+        event.preventDefault();
+        callbackRef.current();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [key, withCtrl]);
+};
+
+const Timeline = ({ undo, redo, setUndo, setRedo, getWidthByAspectRatio }) => {
   const {
     seekerPosition,
     setSeekerPosition,
@@ -36,8 +50,21 @@ const Timeline = () => {
     setZoomTimeline,
     isSplit,
     setIsSplit,
+    aspectRatio,
+    setAspectRatio,
   } = useContext(AppContext);
 
+  const intervalRef = useRef(null);
+  const [isDeleteMedia, setIsDeleteMedia] = useState(false);
+  const [positions, setPositions] = useState({}); // Store positions and sizes
+  const [elements, setElements] = useState([]); // Store element IDs
+  const [top, setTop] = useState(
+    "22.5vh"
+  );
+
+  const [timelineWidth, setTimelineWidth] = useState(
+    (90 * window.innerWidth) / 100
+  );
   // const handleButtonClick = () => {
   //   setIsPlaying((prevIsPlaying) => {
   if (!isPlaying) {
@@ -73,7 +100,12 @@ const Timeline = () => {
   // });
   // };
   const handleSplit = () => {
-    if (selectedElement.id === null) return;
+    if (
+      selectedElement.id === null ||
+      (selectedElement.mediaType !== mediaType.audio &&
+        selectedElement.mediaType !== mediaType.video)
+    )
+      return;
 
     let newSources = [];
 
@@ -91,16 +123,16 @@ const Timeline = () => {
           start: roundedTime,
           newStart: roundedTime,
           speedStart: roundedTime,
-          trackX: source.trackX + Math.floor(roundedTime - source.newStart) * pixels[zoomTimeline] + 1,
+          trackX:
+            source.trackX +
+            Math.floor(roundedTime - source.newStart) * pixels[zoomTimeline] +
+            1,
           // zoomCenter: { x: 0, y: 0 },
           // zoomStart: null,
           // zoomDuration: null,
           // zoomLevel: 1,
-          startsFrom:
-            roundedTime -
-            source.newStart +
-            source.startsFrom,
-          trackNum: source.trackNum
+          startsFrom: roundedTime - source.newStart + source.startsFrom,
+          trackNum: source.trackNum,
         };
 
         // First half
@@ -128,17 +160,18 @@ const Timeline = () => {
   };
   const handleDeleteTrackMedia = () => {
     if (!selectedElement) return;
-    const isSource = sourceAndTiming.find(item=>item.id==selectedElement.id)
-    if(isSource){
+    const isSource = sourceAndTiming.find(
+      (item) => item.id == selectedElement.id
+    );
+    if (isSource) {
       const updatedSourceAndTiming = sourceAndTiming.filter((item) => {
         console.log("item", item, selectedElement);
-  
+
         return item.id !== selectedElement.id;
       });
       console.log("updated sandt", updatedSourceAndTiming);
       setSourceAndTiming(() => [...updatedSourceAndTiming]);
-    }
-    else{
+    } else {
       const updatedEffectsAndTiming = effectsAndTiming.filter((item) => {
         console.log("item", item, selectedElement);
 
@@ -149,27 +182,49 @@ const Timeline = () => {
     }
     setIsDeleteMedia(true);
   };
+  const getHeightByAspectRatio = (aspectRatio, width) => {
+    switch (aspectRatio) {
+      case "9/16":
+        return `35.5vh`; // Height = Width * (16 / 9)
+      case "3/4":
+        return `26.6vh`;
+      case "4/3":
+        return `46.6vh`;
+      case "16/9":
+        return `22.5vh`; // Height = Width * (9 / 16)
+      default:
+        return `22.5vh`; // Default to 16:9
+    }
+  };
+
   useEffect(() => {
     setCurrentSourceAndTiming(
       getCurrentSources(sourceAndTiming, seekerPosition, zoomTimeline)
     );
-
   }, [seekerPosition, sourceAndTiming]);
-  useEffect(()=>{
+  useEffect(() => {
     setCurrentEffectsAndTiming(
       getCurrentSources(effectsAndTiming, seekerPosition, zoomTimeline)
     );
+  }, [seekerPosition, effectsAndTiming]);
+
+  useEffect(() => {
+    setTop(getHeightByAspectRatio(aspectRatio))
+    console.log("top is ", top);
     
-  },[seekerPosition, effectsAndTiming])
-  
+  }, [aspectRatio]);
+
+  useKeyPress("s", handleSplit);
+
   return (
     <div
       className="timeline"
       style={{
         minWidth: `${timelineWidth}px`,
+        top: `calc(${top} + 50vh)`,
       }}
     >
-      <div>
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
         <button onClick={handleSplit}>Split</button>
         <button onClick={handleDeleteTrackMedia}>Delete</button>
         <input
@@ -182,6 +237,16 @@ const Timeline = () => {
           }}
         />
         <label>{zoomTimeline}</label>
+        <select
+          onChange={(e) => {
+            setAspectRatio(e.target.value);
+          }}
+        >
+          <option value="16/9">16:9</option>
+          <option value="9/16">9:16</option>
+          <option value="4/3">4:3</option>
+          <option value="3/4">3:4</option>
+        </select>
       </div>
 
       <Controls />
@@ -197,6 +262,10 @@ const Timeline = () => {
           setElements={setElements}
           positions={positions}
           setPositions={setPositions}
+          undo={undo}
+          redo={redo}
+          setUndo={setUndo}
+          setRedo={setRedo}
         />
         <Track
           isDeleteMedia={isDeleteMedia}
@@ -208,6 +277,10 @@ const Timeline = () => {
           setElements={setElements}
           positions={positions}
           setPositions={setPositions}
+          undo={undo}
+          redo={redo}
+          setUndo={setUndo}
+          setRedo={setRedo}
         />
       </div>
     </div>

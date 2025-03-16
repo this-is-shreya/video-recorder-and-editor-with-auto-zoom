@@ -1,14 +1,35 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import AppContext from "./AppContext";
 import Navbar from "./components/Navbar";
 import Timeline from "./components/timeline/Timeline";
-import MediaPlayer from "./components/MediaPlayer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { pixels } from "./utils/PixelsPerSecondEnum";
 import TextEffect from "./components/TextEffect";
 import MediaPlayerContainer from "./components/MediaPlayerContainer";
+
+const useKeyPress = (key, callback, withCtrl = false) => {
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (withCtrl ? event.ctrlKey && event.key === key : event.key === key) {
+        event.preventDefault();
+        callbackRef.current();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [key, withCtrl]);
+};
 
 function App() {
   const [seekerPosition, setSeekerPosition] = useState(0);
@@ -27,6 +48,12 @@ function App() {
   const [zoomTimeline, setZoomTimeline] = useState(1); //to be worked on
   const [isSplit, setIsSplit] = useState(false);
   const [isTrim, setIsTrim] = useState(false);
+  const [isTimerChanged, setIsTimerChanged] = useState(false);
+  const [dataArray, setDataArray] = useState([]);
+  const [index, setIndex] = useState(0);
+  const [undo, setUndo] = useState(false);
+  const [redo, setRedo] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState("16/9");
 
   const convertToFormattedTime = (position) => {
     const time = Math.floor(position);
@@ -38,11 +65,88 @@ function App() {
     const formattedHours = hours < 10 ? `0${hours}` : hours;
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
   };
+  const getWidthByAspectRatio = (aspectRatio) => {
+    switch (aspectRatio) {
+      case "9/16":
+      case "3/4":
+        return "20vw"; // Reduce width for taller aspect ratios
+      case "4/3":
+        return "35vw"; // Slightly reduce width for 4:3
+      case "16/9":
+        return "40vw";
+      default:
+        return "40vw"; // Default for 16:9 or unknown ratios
+    }
+  };
+
   useEffect(() => {
     setCurrentTime(
       convertToFormattedTime(seekerPosition / pixels[zoomTimeline])
     );
   }, [seekerPosition]);
+
+  //undo-redo
+  // useEffect(() => {
+  //   setDataArray((prevDataArray) => {
+  //     if (
+  //       (sourceAndTiming.length === 0 && effectsAndTiming.length === 0) ||
+  //       undo ||
+  //       redo
+  //     ) {
+  //       return prevDataArray;
+  //     }
+  //     const newDataArray = [...prevDataArray]; // Create a new array (avoid mutation)
+  //     const newEntry = JSON.stringify({ sourceAndTiming, effectsAndTiming });
+  //     const lastEntry =
+  //       newDataArray.length > 0
+  //         ? JSON.stringify(newDataArray[newDataArray.length - 1])
+  //         : null;
+
+  //     // If the new entry is the same as the last one, don't add it
+  //     if (newEntry === lastEntry) {
+  //       return prevDataArray;
+  //     }
+
+  //     if (newDataArray.length >= 10) {
+  //       newDataArray.shift(); // Remove the first element
+  //     }
+
+  //     newDataArray.push({ sourceAndTiming, effectsAndTiming }); // Add new element
+  //     return newDataArray;
+  //   });
+  // }, [sourceAndTiming, effectsAndTiming]);
+
+  // useEffect(() => {
+  //   setIndex(dataArray.length - 1);
+  //   console.log("data array", dataArray);
+  // }, [dataArray]);
+
+  // useEffect(() => {
+  //   if (dataArray[index] && undo) {
+  //     // Ensure valid index
+  //     setSourceAndTiming(dataArray[index].sourceAndTiming);
+  //     setEffectsAndTiming(dataArray[index].effectsAndTiming);
+  //     console.log(">>ent here for index", index);
+  //   }
+  // }, [index]);
+
+  // const handleUndo = () => {
+  //   console.log("Ctrl + Z Pressed! Undo action triggered.");
+  //   if (index === 0) {
+  //     return;
+  //   }
+  //   setUndo(true);
+  //   setIndex((prevIndex) => prevIndex - 1);
+  // };
+  // const handleRedo = () => {
+  //   console.log("Ctrl + Y Pressed! Redo action triggered.", dataArray, index);
+  //   if (index < dataArray.length - 1) {
+  //     setRedo(true);
+  //     setIndex((prevIndex) => prevIndex + 1);
+  //   }
+  // };
+  // useKeyPress("z",handleUndo, true);
+  // useKeyPress("y",handleRedo, true);
 
   return (
     <>
@@ -76,14 +180,26 @@ function App() {
           setIsSplit: setIsSplit,
           isTrim: isTrim,
           setIsTrim: setIsTrim,
+          isTimerChanged: isTimerChanged,
+          setIsTimerChanged: setIsTimerChanged,
+          dataArray: dataArray,
+          setDataArray: setDataArray,
+          aspectRatio: aspectRatio,
+          setAspectRatio: setAspectRatio,
         }}
       >
         <Navbar />
 
         <div className="video-preview">
-          <div className="video-player" ref={videoPlayerRef}>
+          <div
+            className="video-player"
+            ref={videoPlayerRef}
+            style={{
+              aspectRatio: aspectRatio,
+              width: getWidthByAspectRatio(aspectRatio),
+            }}
+          >
             <TextEffect />
-            {/* <MediaPlayer trackNum={2} /> */}
             <MediaPlayerContainer trackNum={2} />
             <MediaPlayerContainer trackNum={1} />
           </div>
@@ -103,7 +219,8 @@ function App() {
           </div>
           {/* <VE /> */}
         </div>
-        <Timeline />
+
+        <Timeline undo={undo} redo={redo} setUndo={setUndo} setRedo={setRedo} getWidthByAspectRatio={getWidthByAspectRatio}/>
       </AppContext.Provider>
     </>
   );

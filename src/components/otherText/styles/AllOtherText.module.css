@@ -1,0 +1,68 @@
+.title-card{
+  overflow: hidden;
+  position: relative;
+}
+.cartoon-text {
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 3em;
+  color: #ffcc00;
+  text-shadow: 4px 4px 0px #000;
+  -webkit-text-stroke: 2px #000;
+}
+.aesthetic-text {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 3em;
+  background: linear-gradient(to right, #c2e59c, #64b3f4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 10px rgba(100, 179, 244, 0.5);
+}
+.professional-text {
+  font-family: 'comic-sans';
+  font-size: 2em;
+  color: #333;
+  text-shadow: 1px 1px 0px #fff, -1px -1px 0px #ddd;
+}
+.glitch-text {
+  font-size: 2em;
+  font-weight: bold;
+  color: #fff;
+  text-transform: uppercase;
+  animation: glitch 1s linear infinite;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent; /* Changed this to transparent */
+  clip-path: polygon(0 0, 100% 0, 100% 20%, 0 20%);
+}
+
+.glitch-text::before {
+  left: 2px;
+  text-shadow: -2px 0 red;
+  animation: glitch 1s infinite reverse;
+}
+
+.glitch-text::after {
+  left: -2px;
+  text-shadow: 2px 0 blue;
+  animation: glitch 1s infinite;
+}
+
+@keyframes glitch {
+  2%, 64% {
+    transform: translate(2px, 0) skew(0deg);
+  }
+  4%, 60% {
+    transform: translate(-2px, 0) skew(0deg);
+  }
+  62% {
+    transform: translate(0, 0) skew(5deg);
+  }
+}

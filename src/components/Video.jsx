@@ -13,7 +13,7 @@ const Video = () => {
     seekerPosition,
     seekerPositionManuallyChanged,
     isSplit,
-    isPlaying
+    isPlaying,
   } = useContext(AppContext);
   const [currentElement, setCurrentElement] = useState(
     sourceAndTiming.find((item) => item.id === selectedElement.id)
@@ -171,6 +171,21 @@ const Video = () => {
     });
   };
 
+  const handleVideoEffect = (e)=>{
+    const effect = e.target.getAttribute("data-alt")
+     console.log("EFFECT IS ", effect);
+    
+     if (!selectedElement) return;
+     // Update the state immutably
+     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+       if (item.id === selectedElement.id) {
+         return { ...item, effectType: effect };
+       }
+       return item;
+     });
+
+     setSourceAndTiming(updatedSourceAndTiming);
+  }
   useEffect(() => {
     if (selectedElement) {
       const selectedItem = sourceAndTiming.find(
@@ -404,6 +419,70 @@ const Video = () => {
               </div>
             </>
           )}
+          <div className="media-container">
+            <h3>Effects</h3>
+            <div
+              className="media-item"
+              data-alt="none"
+              onClick={(e) => handleVideoEffect(e)}
+              style={{
+                border:
+                  currentElement?.effectType === "none" ? "2px solid blue" : "",
+              }}
+            >
+              <span data-alt="none">None</span>
+            </div>
+            <div
+              className="media-item"
+              data-alt="cartoon"
+              onClick={(e) => handleVideoEffect(e)}
+              style={{
+                border:
+                  currentElement?.effectType === "cartoon"
+                    ? "2px solid blue"
+                    : "",
+              }}
+            >
+              <span data-alt="cartoon">Cartoon</span>
+            </div>
+            <div
+              className="media-item"
+              data-alt="glitch"
+              onClick={(e) => handleVideoEffect(e)}
+              style={{
+                border:
+                  currentElement?.effectType === "glitch"
+                    ? "2px solid blue"
+                    : "",
+              }}
+            >
+              <span data-alt="glitch">Glitch</span>
+            </div>
+            <div
+              className="media-item"
+              data-alt="vhs"
+              onClick={(e) => handleVideoEffect(e)}
+              style={{
+                border:
+                  currentElement?.effectType === "vhs" ? "2px solid blue" : "",
+              }}
+            >
+              <span data-alt="vhs">VHS</span>
+            </div>
+            <div
+              className="media-item"
+              data-alt="blur"
+              onClick={(e) => handleVideoEffect(e)}
+              style={{
+                border:
+                  currentElement?.effectType === "blur"
+                    ? "2px solid blue"
+                    : "",
+              }}
+            >
+              <span data-alt="blur">Blur</span>
+            </div>
+          </div>
         </>
       ) : (
         <>

@@ -1,0 +1,51 @@
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  90% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.text-overlay-container {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  pointer-events: none;
+  animation: fadeInOut 5s ease-in-out forwards;
+  display: flex;
+  flex-direction: column;
+  
+}
+
+.background {
+  width: 120px;
+  height: 90px;
+  left: 20px;
+  top: 10%;
+}
+
+.background svg {
+  width: 100%;
+  height: 100%;
+}
+
+.overlay-text {
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  top: 25%;
+}

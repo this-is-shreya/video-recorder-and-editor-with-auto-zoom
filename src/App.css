@@ -44,6 +44,10 @@
   flex-direction: row;
   margin-top: 10px;
   gap: 10px;
+  word-wrap: break-word;
+  white-space: normal;
+  overflow: hidden;
+  
 }
 .media-container > .media-item {
   margin: 10px;
@@ -51,11 +55,14 @@
   padding: 5px;
   text-align: center;
   width: 100px;
+  height: 180px;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   video,
   audio,
   img {
-    width: 100px;
+    width: 80px;
     height: 80px;
   }
 }
@@ -69,14 +76,13 @@ input[type="file"] {
   cursor: pointer;
 }
 .timeline {
-  bottom: 0;
   position: absolute;
   border: 1px solid #28190e;
   height: 30vh;
-  margin-left: 10vw;
+  left: 10vw; /* Align with the navbar */
+  width: calc(100vw - 10vw); /* Adjust based on navbar width */
   overflow-y: auto;
   overflow-x: auto;
-  width: 90vw;
 }
 .controls {
   width: 100%;
@@ -94,21 +100,43 @@ input[type="file"] {
 }
 
 .video-player {
-  right: 5vw;
-  width: 40vw;
-  aspect-ratio: 16/9;
+  width: 20vw;
   background-color: #0f0f0f;
   position: relative;
-  
+  overflow: hidden;
 }
+
+@media (aspect-ratio: 9/16), (aspect-ratio: 3/4) {
+  .video-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (aspect-ratio: 4/3) {
+  .video-player {
+    width: 30vw; /* Slightly reduce width for 4:3 aspect ratio */
+  }
+}
+
+@media (aspect-ratio: 16/9) {
+  .video-player {
+    width: 40vw; /* Keep default width for 16:9 */
+  }
+}
+
 .video-preview {
   display: flex;
   flex-direction: column;
-  top: 10vh;
-  position: absolute;
-  right: 5vw;
-  gap: 10px;
   align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  top: 5vh;
+  position: absolute;
+  left: 55vw;
+  gap: 10px;
+
 }
 .video-player-controls {
   display: flex;
@@ -168,3 +196,98 @@ input[type="file"] {
   flex-direction: column;
   gap: 10px;
 }
+.video-effect-glitch {
+  position: relative;
+  filter: contrast(1.5) brightness(1.2);
+}
+
+.video-effect-glitch::before,
+.video-effect-glitch::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  mix-blend-mode: difference;
+  opacity: 0.8;
+  transform: translateX(-2px);
+}
+
+.video-effect-glitch::after {
+  transform: translateX(2px);
+  mix-blend-mode: lighten;
+}
+
+.video-effect-blur {
+  filter: blur(3px) brightness(1.3) saturate(1.5);
+}
+
+.video-effect-cartoon {
+  filter: saturate(2) contrast(1.5);
+}
+
+.video-effect-vhs {
+  filter: sepia(0.8) contrast(1.2) brightness(0.9);
+}
+
+.animate__zoomIn{
+  animation: text-zoomIn 1s ease-in-out;
+}
+@keyframes text-zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes text-zoomInDown {
+  from {
+    opacity: 0;
+    transform: scale(0.1) translateY(-100%);
+    animation-timing-function: ease-in-out;
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.475) translateY(60px);
+    animation-timing-function: ease-in;
+  }
+}
+.animate__zoomInDown {
+  animation: text-zoomInDown 1s ease-in-out;
+}
+
+@keyframes lightSpeedInRight {
+  from {
+    transform: translateX(100%) skewX(-30deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-20px) skewX(20deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(0) skewX(0);
+  }
+}
+.lightSpeedInRight {
+  animation: lightSpeedInRight 1s ease-out;
+}
+
+@keyframes text-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate__fadeIn {
+  animation: text-fadeIn 1s ease-in;
+}
+
+
+

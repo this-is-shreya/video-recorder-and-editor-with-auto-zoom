@@ -6,6 +6,7 @@ export const navbarObject = Object.freeze({
   textSettings: "textSettings",
   transition: "transition",
   background: "background",
+  videoEffects: "videoEffects"
 });
 
 export const recordingType = Object.freeze({

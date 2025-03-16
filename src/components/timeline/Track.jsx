@@ -18,6 +18,10 @@ const Track = ({
   setElements,
   positions,
   setPositions,
+  undo,
+  redo,
+  setUndo,
+  setRedo,
 }) => {
   const {
     isSpeedChange,
@@ -36,6 +40,8 @@ const Track = ({
     setIsSplit,
     seekerPosition,
     setIsTrim,
+    isTimerChanged,
+    setIsTimerChanged,
   } = useContext(AppContext);
   const [trackMedia, setTrackMedia] = useState([]); // Store media data
   const [prevZoom, setPrevZoom] = useState(zoomTimeline);
@@ -73,7 +79,6 @@ const Track = ({
 
       if (_mediaType !== mediaType.effects) {
         console.log("entered here for ", _mediaType);
-
         setSourceAndTiming((prev) => [
           ...prev,
           {
@@ -86,7 +91,7 @@ const Track = ({
             newEnd: Math.floor(x / pixels[zoomTimeline]) + Number(duration),
             speedEnd: Math.floor(x / pixels[zoomTimeline]) + Number(duration),
             position: { x: 0, y: 0 },
-            size: { width: "30vw", height: "35vh" },
+            size: { width: "30vw", height: "30vh" },
             trackX: x,
             mediaType: _mediaType,
             borderRadius: "0",
@@ -103,6 +108,7 @@ const Track = ({
             transitionToSource: null,
             transitionToId: null,
             transitionType: null,
+            effectType: "none",
           },
         ]);
       } else {
@@ -123,7 +129,7 @@ const Track = ({
             trackNum: trackNum,
             position: { x: 0, y: 0 },
             size: { width: "30vw", height: "35vh" },
-            text: "Sample text",
+            text: src.includes("timer") ? 600 : "Sample text",
             fontStyle: null,
             fontSize: "14",
             textColor: "#000000",
@@ -326,7 +332,6 @@ const Track = ({
       );
     }
   };
-
   const checkOverlap = (
     newRect,
     elements,
@@ -353,6 +358,50 @@ const Track = ({
     return false; // No overlap
   };
 
+  const hasTransitions = (id) => {
+    const item = sourceAndTiming.find((el) => el.id === id);
+    return item?.transitionFromId;
+  };
+
+  const resetTransitions = (id) => {
+    const currentSource = sourceAndTiming.find((item) => item.id === id);
+    const prevSource = sourceAndTiming.find(
+      (item) => item.transitionToId === currentSource?.id
+    );
+    const nextSource = sourceAndTiming.find(
+      (item) => item.transitionFromId === currentSource?.id
+    );
+
+    const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+      if (item.id === currentSource?.id) {
+        return {
+          ...item,
+          transitionFromId: null,
+          transitionFromSource: "",
+          transitionToId: null,
+          transitionToSource: "",
+          transitionType: null,
+        };
+      } else if (item.id === prevSource?.id) {
+        return {
+          ...item,
+          transitionToId: null,
+          transitionToSource: "",
+          transitionType: null,
+        };
+      } else if (item.id === nextSource?.id) {
+        return {
+          ...item,
+          transitionFromId: null,
+          transitionFromSource: "",
+          transitionType: null,
+        };
+      }
+      return item;
+    });
+
+    setSourceAndTiming(updatedSourceAndTiming);
+  };
   useEffect(() => {
     if (!isSplit) {
       return;
@@ -418,6 +467,22 @@ const Track = ({
     setIsSpeedChange(false);
     console.log("s&t", sourceAndTiming, positions);
   }, [isSpeedChange]);
+
+  useEffect(() => {
+    const source = effectsAndTiming.find(
+      (item) => item.id === selectedElement.id
+    );
+    if (!source) return;
+
+    setPositions((prev) => ({
+      ...prev,
+      [selectedElement.id]: {
+        ...prev[selectedElement.id],
+        width: Math.floor(Number(source.text) / 10) * pixels[zoomTimeline],
+      },
+    }));
+    setIsTimerChanged(false);
+  }, [isTimerChanged]);
   useEffect(() => {
     console.log("in track sandt", sourceAndTiming);
     if (!isDeleteMedia) {
@@ -505,6 +570,65 @@ const Track = ({
     setPrevZoom(zoomTimeline);
   }, [zoomTimeline]);
 
+  //undo-redo
+  // useEffect(() => {
+  //   if (undo || redo) {
+  //     let tracks = [];
+
+  //     sourceAndTiming.forEach((source) => {
+  //       if (source.trackNum === trackNum) {
+  //         tracks.push({
+  //           id: source.id,
+  //           src: source.source,
+  //           mediaType: source.mediaType,
+  //           duration: Math.floor(Number(source.newEnd - source.newStart)),
+  //         });
+  //       }
+
+  //       if (!elements.some((el) => el.id === source.id)) {
+  //         setElements((prev) => [...prev, { id: source.id, trackNum }]);
+  //       }
+
+  //       setPositions((prev) => ({
+  //         ...prev,
+  //         [source.id]: {
+  //           x: source.trackX, // Preserve x position
+  //           y: 0, // Preserve y if it exists, else default to 0
+  //           width: (source.newEnd - source.newStart) * pixels[zoomTimeline],
+  //         },
+  //       }));
+  //     });
+
+  //     effectsAndTiming.forEach((source) => {
+  //       if (source.trackNum === trackNum) {
+  //         tracks.push({
+  //           id: source.id,
+  //           src: source.source,
+  //           mediaType: source.mediaType,
+  //           duration: Math.floor(Number(source.newEnd - source.newStart)),
+  //         });
+  //       }
+
+  //       if (!elements.some((el) => el.id === source.id)) {
+  //         setElements((prev) => [...prev, { id: source.id, trackNum }]);
+  //       }
+
+  //       setPositions((prev) => ({
+  //         ...prev,
+  //         [source.id]: {
+  //           x: prev[source.id]?.x || source.trackX, // Preserve x position
+  //           y: prev[source.id]?.y ?? 0, // Preserve y if it exists
+  //           width: (source.newEnd - source.newStart) * pixels[zoomTimeline],
+  //         },
+  //       }));
+  //     });
+
+  //     setTrackMedia(tracks);
+  //     setUndo(false);
+  //     setRedo(false);
+  //   }
+  // }, [undo, redo]);
+
   return (
     <div
       className="track"
@@ -542,6 +666,7 @@ const Track = ({
             }}
             onResize={(e, direction, ref, delta, position) => {
               // ref.style.position = "fixed";
+              resetTransitions(m.id);
             }}
             onResizeStop={(e, direction, ref, delta, position) => {
               handleResizeStop(m.id, e, direction, ref, delta, position);
@@ -553,35 +678,20 @@ const Track = ({
 
               //   setTimelineWidth(data.x + width); // Expand dynamically
               // }
-              if (m.mediaType === mediaType.video) {
-                const currentSource = sourceAndTiming.find(
-                  (item) => item.id === m.id
-                );
-                if (!currentSource.transitionFromId) {
-                  return;
-                }
-                const prevSource = sourceAndTiming.find(
-                  (item) => item.transitionToId === currentSource?.id
-                );
-                const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-                  if (item.id === currentSource?.id) {
-                    return {
-                      ...item,
-                      transitionFromId: null,
-                      transitionFromSource: "",
-                    };
-                  } else if (item.id === prevSource?.id) {
-                    return {
-                      ...item,
-                      transitionToId: null,
-                      transitionToSource: "",
-                      transitionType: null,
-                    };
-                  }
-                  return item;
-                });
 
-                setSourceAndTiming(updatedSourceAndTiming);
+              if (
+                data.x - positions[m.id].x <= 1 &&
+                data.x - positions[m.id].x >= 0 &&
+                data.y - positions[m.id].y - 40 <= 1 &&
+                data.y - positions[m.id].y - 40 >= 0
+              ) {
+                // If there's no actual movement, don't reset transitions
+                console.log("<<no mov", data);
+
+                return;
+              }
+              if (m.mediaType === mediaType.video) {
+                resetTransitions(m.id);
               }
             }}
             onDragStop={(e, data) => {
@@ -636,8 +746,7 @@ const Track = ({
                 })
               }
             >
-              {sourceAndTiming.find((item) => item.id === m.id)
-                ?.transitionFromId && <FontAwesomeIcon icon={faBolt} />}
+              {hasTransitions(m.id) && <FontAwesomeIcon icon={faBolt} />}
 
               {positions[m.id]?.width * zoomTimeline}
             </div>

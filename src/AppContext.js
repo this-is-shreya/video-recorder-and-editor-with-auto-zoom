@@ -29,6 +29,12 @@ const AppContext = createContext({
   setIsSplit: () => {},
   isTrim: null,
   setIsTrim: () => {},
+  isTimerChanged: null,
+  setIsTimerChanged: () => {},
+  dataArray: null,
+  setDataArray: () => {},
+  aspectRatio:null,
+  setAspectRatio:()=>{}
 });
 
 export default AppContext;

@@ -1,14 +1,15 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import AppContext from "../AppContext";
 import { mediaType, transitionType } from "../utils/MediaEnum";
 
 const TransitionPanel = () => {
   const { selectedElement, sourceAndTiming, setSourceAndTiming } =
     useContext(AppContext);
-  const currentSourceAndTiming = sourceAndTiming.find(
-    (item) => item.id === selectedElement.id
+  const [currentSourceAndTiming, setCurrentSourceAndTiming] = useState(
+    sourceAndTiming.find((item) => item.id === selectedElement.id)
   );
-  console.log(Object.values(transitionType));
+  
+  const [transition, setTransition] = useState(null);
 
   const previousSourceAndTiming = sourceAndTiming.find(
     (item) =>
@@ -19,11 +20,9 @@ const TransitionPanel = () => {
       item.id !== selectedElement.id
   );
 
-  const [transition, setTransition] = useState(
-    currentSourceAndTiming?.transition
-  );
-
   const handleTransition = (e) => {
+    console.log("YOU CLICKED");
+
     const transition = e.target.getAttribute("data-alt");
     setTransition(transition);
     const newSourceAndTiming = sourceAndTiming.map((item) => {
@@ -62,14 +61,20 @@ const TransitionPanel = () => {
     });
     setSourceAndTiming(newSourceAndTiming);
   };
+  useEffect(() => {
+    setCurrentSourceAndTiming(
+      sourceAndTiming.find((item) => item.id === selectedElement.id)
+    );
+    setTransition(currentSourceAndTiming?.transitionType);
+  }, [selectedElement]);
+
   return (
     <div className="panel">
       {(!selectedElement.id ||
-        selectedElement?.mediaType === mediaType.audio ||
-        selectedElement?.mediaType === mediaType.effects) && (
-        <h3>No element selected</h3>
+        selectedElement.mediaType !== mediaType.video) && (
+        <h3>No video element selected</h3>
       )}
-      {previousSourceAndTiming && (
+      {previousSourceAndTiming && selectedElement.mediaType === mediaType.video && (
         <div className="media-container">
           <div
             className="media-item"

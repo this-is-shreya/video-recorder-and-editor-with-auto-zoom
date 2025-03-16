@@ -1,23 +1,37 @@
 import React, { useContext } from "react";
 import AppContext from "../AppContext";
 import { mediaType } from "../utils/MediaEnum";
-import { h3 } from "framer-motion/client";
 
 const TextEffectSettings = () => {
-  const { selectedElement, effectsAndTiming, setEffectsAndTiming } =
+  const { selectedElement, effectsAndTiming, setEffectsAndTiming, setIsTimerChanged } =
     useContext(AppContext);
   console.log("SELECTED ELEMENT IS ", selectedElement);
   const currentEffectsAndTiming = effectsAndTiming.find(
     (item) => item.id === selectedElement.id
   );
   const updateText = (e) => {
-    setEffectsAndTiming((prev) =>
-      prev.map((item) =>
-        item.id === currentEffectsAndTiming.id
-          ? { ...item, text: e.target.value }
-          : item
-      )
-    );
+    if(!currentEffectsAndTiming.source.includes("timer")){
+      setEffectsAndTiming((prev) =>
+        prev.map((item) =>
+          item.id === currentEffectsAndTiming.id
+            ? { ...item, text: e.target.value }
+            : item
+        )
+      );
+    }
+    else{
+      if(isNaN(Number(e.target.value))){
+        return;
+      }
+      setEffectsAndTiming((prev) =>
+        prev.map((item) =>
+          item.id === currentEffectsAndTiming.id
+            ? { ...item, text: e.target.value }
+            : item
+        )
+      );
+      setIsTimerChanged(true);
+    }
   };
   const updateFont = (e) => {
     setEffectsAndTiming((prev) =>
@@ -77,7 +91,7 @@ const TextEffectSettings = () => {
   };
   return (
     <div className="panel">
-      {currentEffectsAndTiming?.source.includes("text") && (
+      {currentEffectsAndTiming?.source.includes("text") && !currentEffectsAndTiming?.source.includes("time-display") && (
         <div>
           Text:{" "}
           <textarea
@@ -145,8 +159,6 @@ const TextEffectSettings = () => {
               <option value="animate__fadeIn">Fade In</option>
               <option value="animate__zoomIn">Zoom In</option>
               <option value="animate__zoomInDown">Zoom In Down</option>
-              <option value="animate__jackInTheBox">Pop</option>
-              <option value="animate__lightSpeedInLeft">Lightspeed</option>
             </select>
           </div>
           {currentEffectsAndTiming?.source === "text-basic" && (

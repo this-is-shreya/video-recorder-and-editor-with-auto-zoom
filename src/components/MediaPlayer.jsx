@@ -3,7 +3,29 @@ import { Rnd } from "react-rnd";
 import AppContext from "../AppContext";
 import { pixels } from "../utils/PixelsPerSecondEnum";
 import { mediaType } from "../utils/MediaEnum";
-import Transition1 from "./transitions/Transition1";
+
+
+const useKeyPress = (key, callback, withCtrl = false) => {
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (withCtrl ? event.ctrlKey && event.key === key : event.key === key) {
+        event.preventDefault();
+        callbackRef.current();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [key, withCtrl]);
+};
 
 const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
   const {
@@ -20,6 +42,7 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
     zoomTimeline,
     isTrim,
     setIsTrim,
+    setIsPlaying
   } = useContext(AppContext);
 
   // Ensure there is valid video data
@@ -32,6 +55,9 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
   }
 
   const [currentZoomLevel, setCurrentZoomLevel] = useState(1);
+  const animationRef = useRef(null);
+  const canvasRef = useRef(null);
+
   // const key = Object.keys(currentSourceAndTimingFiltered)[0];
   const {
     source,
@@ -50,14 +76,16 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
     transitionType,
     transitionFromId,
   } = currentSourceAndTimingFiltered[0];
-  // console.log("currentsandt", currentSourceAndTiming);
+  console.log("currentsandt", currentSourceAndTiming);
   // Initialize state for position and size from currentSourceAndTiming
   const [position, setPosition] = useState(
     currentSourceAndTimingFiltered[0].position || { x: 0, y: 0 }
   );
+  const [currentEffect, setCurrentEffect] = useState(
+    currentSourceAndTimingFiltered[0].effectType
+  );
 
   const [size, setSize] = useState(currentSourceAndTimingFiltered[0].size);
-
   const videoRef = useRef(null); // Reference to the video element
   const audioRef = useRef(null); // Reference to the audio element
   const imgRef = useRef(null); // Reference to the img element
@@ -79,8 +107,25 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
           : item
       )
     );
-    console.log("Updated Context with New Size:", newSize);
+    console.log(
+      "Updated Context with New Size:",
+      newSize,
+      " for ",
+      currentSourceAndTimingFiltered[0].id
+    );
   };
+
+  useEffect(() => {
+    if (currentSourceAndTimingFiltered[0]) {
+      setPosition(currentSourceAndTimingFiltered[0].position || { x: 0, y: 0 });
+      setSize(currentSourceAndTimingFiltered[0].size);
+    }
+  }, [currentSourceAndTimingFiltered[0]?.id]); // Trigger update when the video ID changes
+
+  useEffect(() => {
+    setVideoSource(source);
+    setVideoLoaded(false); // Reset load state to force update
+  }, [source]);
 
   //for video
   useEffect(() => {
@@ -229,12 +274,19 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
       transitionType != null
     ) {
       setIsTransitioning(true);
-      setTransitionType(transitionType)
+      setTransitionType(transitionType);
       console.log(">> set transition", transitionType);
-      
     }
-   
   }, [seekerPosition]);
+
+  // Process video and stream it to an RND video element
+ useEffect(()=>{
+  setCurrentEffect(currentSourceAndTimingFiltered[0].effectType)
+ },[currentSourceAndTimingFiltered])
+
+useKeyPress(" ", () => setIsPlaying((prev) => !prev));
+
+
   return (
     <Rnd
       size={{ width: size.width, height: size.height }}
@@ -264,7 +316,7 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
       style={{
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
         overflow: "hidden",
-        backgroundColor: "black",
+        backgroundColor: "transparent",
         zIndex: trackNum,
         borderRadius: `${(borderRadius / 100) * size.height}px / ${
           (borderRadius / 100) * size.width
@@ -273,30 +325,35 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
       className={`${selectedElement.id}-preview`}
     >
       {currentSourceAndTiming[0].mediaType === mediaType.video && (
-        <video
-          key={source}
-          ref={videoRef}
-          src={source}
-          autoPlay={false}
-          muted={false}
-          crossOrigin="anonymous"
-          onLoadedMetadata={() => setVideoLoaded(true)}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: "block",
-            opacity: videoLoaded ? 1 : 0, // Avoid display issues
-            visibility: videoLoaded ? "visible" : "hidden",
-            transition: `transform 0.3s ease-in-out, border-radius 0.3s ease-in-out`, // Apply transition to both transform and border-radius
-            transform: isPlaying
-              ? `scale(${currentZoomLevel}, ${currentZoomLevel})`
-              : "",
-            transformOrigin: isPlaying
-              ? `${zoomCenter.x * 100}% ${zoomCenter.y * 100}%`
-              : "", // Set origin
-          }}
-        />
+        
+          <video
+            key={source}
+            ref={videoRef}
+            src={source}
+            autoPlay={false}
+            muted={false}
+            crossOrigin="anonymous"
+            className={`video-player ${
+              currentEffect !== "none" ? `video-effect-${currentEffect}` : ""
+            }`}
+            onLoadedMetadata={() => setVideoLoaded(true)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+              opacity: videoLoaded ? 1 : 0, // Avoid display issues
+              visibility: videoLoaded ? "visible" : "hidden",
+              transition: `transform 0.3s ease-in-out, border-radius 0.3s ease-in-out`, // Apply transition to both transform and border-radius
+              transform: isPlaying
+                ? `scale(${currentZoomLevel}, ${currentZoomLevel})`
+                : "",
+              transformOrigin: isPlaying
+                ? `${zoomCenter.x * 100}% ${zoomCenter.y * 100}%`
+                : "", // Set origin
+            }}
+          />
+      
       )}
       {currentSourceAndTiming[0].mediaType === mediaType.image && (
         <img

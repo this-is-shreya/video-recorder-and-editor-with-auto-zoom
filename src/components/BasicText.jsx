@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import AppContext from "../AppContext";
 import { Rnd } from "react-rnd";
-import "animate.css";
 
 const BasicText = () => {
   const {
@@ -106,10 +105,10 @@ const BasicText = () => {
           border: clicked ? "2px solid purple" : "",
 
         }}
-        className={`${selectedElement.id}-preview animate__animated ${animation}`}
+        className={`${selectedElement.id}-preview ${animation}`}
       >
         <span
-          className={`animate__animated ${animation}`}
+          className={`${animation}`}
           style={{
             color: textColor,
             padding: "10px",
