@@ -15,8 +15,6 @@ const MediaPlayerContainer = ({ trackNum }) => {
   const currentSourceAndTimingFiltered = 
       currentSourceAndTiming.filter((item) => item.trackNum === trackNum)
   
-  console.log(">> ", currentSourceAndTimingFiltered);
-
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [_transitionType, setTransitionType] = useState(null);
 

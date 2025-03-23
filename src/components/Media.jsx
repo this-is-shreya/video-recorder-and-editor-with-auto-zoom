@@ -2,14 +2,17 @@ import { faFileUpload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import React, { useState } from "react";
 import { mediaType } from "../utils/MediaEnum";
+import { saveBlobToCache } from "../utils/cache";
 
 const Media = () => {
   const [files, setFiles] = useState([]);
   const handleFileUpload = (event) => {
-    const uploadedFiles = Array.from(event.target.files).map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
+    const uploadedFiles = Array.from(event.target.files).map((file) => {
+      return {
+        file,
+        preview: URL.createObjectURL(file),
+      };
+    });
 
     setFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
   };
@@ -21,19 +24,21 @@ const Media = () => {
     });
   };
   // console.log("files", files);
-  const handleDragStart = (e, _mediaType, preview) => {
+  const handleDragStart = (e, _mediaType, preview, index) => {
     const element =
       _mediaType === mediaType.audio
         ? e.currentTarget.querySelector("audio")
         : e.target;
-
+    const id = Date.now();
     // Ensure metadata is loaded before accessing duration
     if (element.readyState >= 1 || _mediaType !== mediaType.video) {
-      console.log("duration", element.duration)
+      console.log("duration", element.duration);
       const src = preview;
       e.dataTransfer.setData("text/plain", src);
       e.dataTransfer.setData("media-type", _mediaType);
       e.dataTransfer.setData("duration", Math.floor(element.duration ?? 10));
+      e.dataTransfer.setData("id", id);
+      saveBlobToCache(id, new Blob([files[index].file], { type: _mediaType }));
     } else {
       // If metadata isn't loaded, listen for it
       element.addEventListener(
@@ -43,6 +48,11 @@ const Media = () => {
           e.dataTransfer.setData("text/plain", videoSrc);
           e.dataTransfer.setData("media-type", "video");
           e.dataTransfer.setData("duration", Math.floor(element.duration));
+          e.dataTransfer.setData("id", id);
+          saveBlobToCache(
+            id,
+            new Blob([files[index].file], { type: _mediaType })
+          );
         },
         { once: true }
       ); // Ensures the event fires only once
@@ -70,7 +80,7 @@ const Media = () => {
                 src={fileObj.preview}
                 draggable
                 onDragStart={(e) =>
-                  handleDragStart(e, mediaType.video, fileObj.preview)
+                  handleDragStart(e, mediaType.video, fileObj.preview, index)
                 }
                 preload="metadata"
                 onLoadedMetadata={(e) => {
@@ -92,7 +102,7 @@ const Media = () => {
               <div
                 draggable
                 onDragStart={(e) =>
-                  handleDragStart(e, mediaType.audio, fileObj.preview)
+                  handleDragStart(e, mediaType.audio, fileObj.preview, index)
                 }
               >
                 <span>🎵</span>
@@ -121,7 +131,7 @@ const Media = () => {
                 src={fileObj.preview}
                 draggable
                 onDragStart={(e) =>
-                  handleDragStart(e, mediaType.image, fileObj.preview)
+                  handleDragStart(e, mediaType.image, fileObj.preview, index)
                 }
               />
             )}

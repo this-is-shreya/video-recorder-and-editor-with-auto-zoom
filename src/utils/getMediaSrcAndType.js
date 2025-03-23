@@ -3,8 +3,8 @@ export const getMediaSrcAndType = (event) => {
     const src = event.dataTransfer.getData("text/plain");
     const mediaType = event.dataTransfer.getData("media-type");
     const duration = event.dataTransfer.getData("duration");
-    console.log(event.dataTransfer);
-    return { src, mediaType, duration };
+    const id = event.dataTransfer.getData("id");
+    return { src, mediaType, duration, id };
   } else {
     const file = event.dataTransfer.files[0];
     if (file) {
@@ -14,9 +14,10 @@ export const getMediaSrcAndType = (event) => {
         ? "audio"
         : "image";
       const src = URL.createObjectURL(file);
+      const id = event.dataTransfer.getData("id");      
       const duration = event.target.duration ?? 10;
       console.log("duration", duration, event);
-      return { src, mediaType, duration };
+      return { src, mediaType, duration, id };
     }
   }
 };

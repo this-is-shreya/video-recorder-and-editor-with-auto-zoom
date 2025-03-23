@@ -7,6 +7,7 @@ import { mediaType, transitionType } from "../../utils/MediaEnum";
 import { FaBolt } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBolt } from "@fortawesome/free-solid-svg-icons";
+import { getBlobFromCache } from "../../utils/cache";
 
 const Track = ({
   isDeleteMedia,
@@ -39,9 +40,11 @@ const Track = ({
     isSplit,
     setIsSplit,
     seekerPosition,
+    isTrim,
     setIsTrim,
     isTimerChanged,
     setIsTimerChanged,
+    projectId,
   } = useContext(AppContext);
   const [trackMedia, setTrackMedia] = useState([]); // Store media data
   const [prevZoom, setPrevZoom] = useState(zoomTimeline);
@@ -52,7 +55,7 @@ const Track = ({
     const src = obj.src;
     const _mediaType = obj.mediaType;
     const duration = obj.duration;
-    const id = Date.now();
+    const id = obj.id ? obj.id : Date.now();
     const trackRect = e.target.getBoundingClientRect();
     const x = e.clientX - trackRect.left; // Position relative to the track
     const y = 0; // Fixed y-coordinate
@@ -173,46 +176,85 @@ const Track = ({
         ...prev,
         [id]: { ...prev[id], x: newX, y: newY },
       }));
-      const duration = Number(
-        trackMedia.find((m) => m.id === id)?.duration || 0
-      );
-      setSourceAndTiming((prev) =>
-        prev.map((item) => {
-          if (item.id === id) {
-            const time = convertToFormattedTime(
-              Math.floor(newX / pixels[zoomTimeline]) +
-                duration +
-                (item.end - item.newEnd)
-            );
-            if (time > maxTime) {
-              setMaxTime(time);
+      const media = trackMedia.find((m) => m.id === id);
+      const duration = Number(media?.duration || 0);
+      if (media.mediaType === mediaType.effects) {
+        setEffectsAndTiming((prev) =>
+          prev.map((item) => {
+            if (item.id === id) {
+              const time = convertToFormattedTime(
+                Math.floor(newX / pixels[zoomTimeline]) +
+                  duration +
+                  (item.end - item.newEnd)
+              );
+              if (time > maxTime) {
+                setMaxTime(time);
+              }
+              return {
+                ...item,
+                speedStart:
+                  Math.floor(newX / pixels[zoomTimeline]) +
+                  (item.speedStart - item.start),
+                newStart:
+                  Math.floor(newX / pixels[zoomTimeline]) +
+                  (item.newStart - item.start),
+                start: Math.floor(newX / pixels[zoomTimeline]),
+                speedEnd:
+                  Math.floor(newX / pixels[zoomTimeline]) +
+                  duration +
+                  (item.speedEnd - item.end),
+                newEnd:
+                  Math.floor(newX / pixels[zoomTimeline]) +
+                  duration +
+                  (item.end - item.newEnd),
+                end: Math.floor(newX / pixels[zoomTimeline]) + duration,
+                trackX: newX,
+                trackNum: numTrack,
+              };
+            } else {
+              return item;
             }
-            return {
-              ...item,
-              speedStart:
+          })
+        );
+      } else {
+        setSourceAndTiming((prev) =>
+          prev.map((item) => {
+            if (item.id === id) {
+              const time = convertToFormattedTime(
                 Math.floor(newX / pixels[zoomTimeline]) +
-                (item.speedStart - item.start),
-              newStart:
-                Math.floor(newX / pixels[zoomTimeline]) +
-                (item.newStart - item.start),
-              start: Math.floor(newX / pixels[zoomTimeline]),
-              speedEnd:
-                Math.floor(newX / pixels[zoomTimeline]) +
-                duration +
-                (item.speedEnd - item.end),
-              newEnd:
-                Math.floor(newX / pixels[zoomTimeline]) +
-                duration +
-                (item.end - item.newEnd),
-              end: Math.floor(newX / pixels[zoomTimeline]) + duration,
-              trackX: newX,
-              trackNum: numTrack,
-            };
-          } else {
-            return item;
-          }
-        })
-      );
+                  duration +
+                  (item.end - item.newEnd)
+              );
+              if (time > maxTime) {
+                setMaxTime(time);
+              }
+              return {
+                ...item,
+                speedStart:
+                  Math.floor(newX / pixels[zoomTimeline]) +
+                  (item.speedStart - item.start),
+                newStart:
+                  Math.floor(newX / pixels[zoomTimeline]) +
+                  (item.newStart - item.start),
+                start: Math.floor(newX / pixels[zoomTimeline]),
+                speedEnd:
+                  Math.floor(newX / pixels[zoomTimeline]) +
+                  duration +
+                  (item.speedEnd - item.end),
+                newEnd:
+                  Math.floor(newX / pixels[zoomTimeline]) +
+                  duration +
+                  (item.end - item.newEnd),
+                end: Math.floor(newX / pixels[zoomTimeline]) + duration,
+                trackX: newX,
+                trackNum: numTrack,
+              };
+            } else {
+              return item;
+            }
+          })
+        );
+      }
     }
   };
 
@@ -359,7 +401,7 @@ const Track = ({
   };
 
   const hasTransitions = (id) => {
-    const item = sourceAndTiming.find((el) => el.id === id);
+    const item = sourceAndTiming.find((el) => el?.id === id);
     return item?.transitionFromId;
   };
 
@@ -402,6 +444,69 @@ const Track = ({
 
     setSourceAndTiming(updatedSourceAndTiming);
   };
+  useEffect(() => {
+    console.log("Updated positions in state:", positions);
+  }, [positions]);
+
+  useEffect(() => {
+    const savedData = localStorage.getItem(projectId);
+    const parsedSavedData = JSON.parse(savedData);
+    console.log("parsed saved data ", parsedSavedData, savedData);
+
+    if (!parsedSavedData || !parsedSavedData.positions) return;
+    if (parsedSavedData) {
+      setSourceAndTiming(parsedSavedData.sourceAndTiming);
+      setEffectsAndTiming(parsedSavedData.effectsAndTiming);
+      setElements(parsedSavedData.elements);
+
+      console.log("data:", parsedSavedData);
+      let tracks = [];
+      parsedSavedData.sourceAndTiming.forEach((source) => {
+        console.log("SOURCE IS : ", source);
+
+        if (source.trackNum === trackNum) {
+          tracks.push({
+            id: source.id,
+            src: source.source,
+            mediaType: source.mediaType,
+            duration: Math.floor(Number(source.newEnd - source.newStart)),
+          });
+        }
+      });
+
+      Promise.all(
+        parsedSavedData.sourceAndTiming.map(async (item) => {
+          try {
+            const blob = await getBlobFromCache(item.id);
+            console.log("BLOB IS ", blob);
+            return { ...item, source: URL.createObjectURL(blob) };
+          } catch (error) {
+            console.error("Failed to load blob for:", item.id, error);
+            return item; // Keep the original item if the blob is missing
+          }
+        })
+      ).then((updatedSourceAndTiming) => {
+        setSourceAndTiming(updatedSourceAndTiming);
+      });
+
+      parsedSavedData.effectsAndTiming.forEach((source) => {
+        if (source.trackNum === trackNum) {
+          tracks.push({
+            id: source.id,
+            src: source.source,
+            mediaType: source.mediaType,
+            duration: Math.floor(Number(source.newEnd - source.newStart)),
+          });
+        }
+      });
+      if (tracks.length === 0) {
+        return;
+      }
+
+      setTrackMedia(tracks);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isSplit) {
       return;
@@ -535,16 +640,18 @@ const Track = ({
   }, [isDeleteMedia]);
 
   useEffect(() => {
-    console.log("new S&T", sourceAndTiming, trackMedia);
+    console.log("new S&T", sourceAndTiming, effectsAndTiming);
 
     let maxNewEnd = sourceAndTiming.reduce(
-      (max, obj) => Math.max(max, obj.newEnd),
+      (max, obj) => Math.max(max, obj?.newEnd),
       0
     );
+
     maxNewEnd = effectsAndTiming.reduce(
-      (max, obj) => Math.max(max, obj.newEnd),
+      (max, obj) => Math.max(max, obj?.newEnd),
       maxNewEnd
     );
+
     setMaxTime(convertToFormattedTime(maxNewEnd));
   }, [
     isDeleteMedia,
@@ -552,6 +659,7 @@ const Track = ({
     isSpeedChange,
     sourceAndTiming,
     effectsAndTiming,
+    isTrim,
   ]);
 
   useEffect(() => {
@@ -570,6 +678,11 @@ const Track = ({
     setPrevZoom(zoomTimeline);
   }, [zoomTimeline]);
 
+  useEffect(() => {
+    const savedData = localStorage.getItem(projectId);
+    const parsedSavedData = JSON.parse(savedData);
+    setPositions(parsedSavedData?.positions);
+  }, []);
   //undo-redo
   // useEffect(() => {
   //   if (undo || redo) {
@@ -644,114 +757,112 @@ const Track = ({
         }
       }
     >
-      {trackMedia
-        .filter((m) => positions[m.id] && !isNaN(positions[m.id]?.width))
-        .map((m) => (
-          <Rnd
-            key={m.id}
-            size={{
-              width: positions[m.id]?.width || 100,
-              height: 40,
-            }}
-            bounds={".all-tracks"}
-            position={{
-              x: positions[m.id]?.x || 0,
-              y: positions[m.id]?.y || 0,
-            }}
-            enableResizing={{
-              left: m.mediaType !== mediaType.effects,
-              right: m.mediaType !== mediaType.effects,
-              top: false,
-              bottom: false,
-            }}
-            onResize={(e, direction, ref, delta, position) => {
-              // ref.style.position = "fixed";
+      {trackMedia.map((m) => (
+        <Rnd
+          key={m.id}
+          size={{
+            width: positions[m.id]?.width || 100,
+            height: 40,
+          }}
+          bounds={".all-tracks"}
+          position={{
+            x: positions[m.id]?.x || 0,
+            y: positions[m.id]?.y || 0,
+          }}
+          enableResizing={{
+            left: m.mediaType !== mediaType.effects,
+            right: m.mediaType !== mediaType.effects,
+            top: false,
+            bottom: false,
+          }}
+          onResize={(e, direction, ref, delta, position) => {
+            // ref.style.position = "fixed";
+            resetTransitions(m.id);
+          }}
+          onResizeStop={(e, direction, ref, delta, position) => {
+            handleResizeStop(m.id, e, direction, ref, delta, position);
+          }}
+          onDragStart={(e, data) => {
+            // const width = positions[m.id]?.width || 100;
+            // if (data.x + width > timelineWidth) {
+            //   console.log("ans ", data.x + width);
+
+            //   setTimelineWidth(data.x + width); // Expand dynamically
+            // }
+
+            if (
+              data.x - positions[m.id].x <= 1 &&
+              data.x - positions[m.id].x >= 0 &&
+              data.y - positions[m.id].y - 40 <= 1 &&
+              data.y - positions[m.id].y - 40 >= 0
+            ) {
+              // If there's no actual movement, don't reset transitions
+              console.log("<<no mov", data);
+
+              return;
+            }
+            if (m.mediaType === mediaType.video) {
               resetTransitions(m.id);
-            }}
-            onResizeStop={(e, direction, ref, delta, position) => {
-              handleResizeStop(m.id, e, direction, ref, delta, position);
-            }}
-            onDragStart={(e, data) => {
-              // const width = positions[m.id]?.width || 100;
-              // if (data.x + width > timelineWidth) {
-              //   console.log("ans ", data.x + width);
+            }
+          }}
+          onDragStop={(e, data) => {
+            e.preventDefault();
+            const t = e.target.getBoundingClientRect();
+            console.log("t->", t);
 
-              //   setTimelineWidth(data.x + width); // Expand dynamically
-              // }
+            let newTrackNum = null;
 
-              if (
-                data.x - positions[m.id].x <= 1 &&
-                data.x - positions[m.id].x >= 0 &&
-                data.y - positions[m.id].y - 40 <= 1 &&
-                data.y - positions[m.id].y - 40 >= 0
-              ) {
-                // If there's no actual movement, don't reset transitions
-                console.log("<<no mov", data);
+            for (let i = 1; i <= 2; i++) {
+              const trackElement = document.getElementById(`track-${i}`);
+              if (trackElement) {
+                const rect = trackElement.getBoundingClientRect();
 
-                return;
-              }
-              if (m.mediaType === mediaType.video) {
-                resetTransitions(m.id);
-              }
-            }}
-            onDragStop={(e, data) => {
-              e.preventDefault();
-              const t = e.target.getBoundingClientRect();
-              console.log("t->", t);
-
-              let newTrackNum = null;
-
-              for (let i = 1; i <= 2; i++) {
-                const trackElement = document.getElementById(`track-${i}`);
-                if (trackElement) {
-                  const rect = trackElement.getBoundingClientRect();
-
-                  if (t.top >= rect.top && t.top + 40 <= rect.bottom) {
-                    newTrackNum = i; // Set new track number
-                  }
+                if (t.top >= rect.top && t.top + 40 <= rect.bottom) {
+                  newTrackNum = i; // Set new track number
                 }
               }
-              if (!newTrackNum) {
-                return;
-              }
-              if (newTrackNum !== null) {
-                setElements((prevElements) =>
-                  prevElements.map((el) =>
-                    el.id === m.id ? { ...el, trackNum: newTrackNum } : el
-                  )
-                );
-                handleDragStop(m.id, e, data, newTrackNum);
-              }
+            }
+            if (!newTrackNum) {
+              return;
+            }
+            if (newTrackNum !== null) {
+              setElements((prevElements) =>
+                prevElements.map((el) =>
+                  el.id === m.id ? { ...el, trackNum: newTrackNum } : el
+                )
+              );
+              handleDragStop(m.id, e, data, newTrackNum);
+            }
+          }}
+        >
+          <div
+            id={m.id}
+            className="track-video"
+            style={{
+              width: `${positions[m.id]?.width}px`,
+              height: "100%",
+              backgroundColor: "rgb(63, 166, 245)",
+              borderRadius: "4px",
+              position: "absolute",
+              border:
+                selectedElement.id === m.id
+                  ? "2px solid red"
+                  : "2px solid black",
             }}
+            onClick={() =>
+              setSelectedElement({
+                id: m.id,
+                src: m.src,
+                mediaType: m.mediaType,
+              })
+            }
           >
-            <div
-              id={m.id}
-              className="track-video"
-              style={{
-                width: `${positions[m.id]?.width}px`,
-                height: "100%",
-                backgroundColor: "rgb(63, 166, 245)",
-                borderRadius: "4px",
-                position: "absolute",
-                border:
-                  selectedElement.id === m.id
-                    ? "2px solid red"
-                    : "2px solid black",
-              }}
-              onClick={() =>
-                setSelectedElement({
-                  id: m.id,
-                  src: m.src,
-                  mediaType: m.mediaType,
-                })
-              }
-            >
-              {hasTransitions(m.id) && <FontAwesomeIcon icon={faBolt} />}
+            {hasTransitions(m.id) && <FontAwesomeIcon icon={faBolt} />}
 
-              {positions[m.id]?.width * zoomTimeline}
-            </div>
-          </Rnd>
-        ))}
+            {positions[m.id]?.width * zoomTimeline}
+          </div>
+        </Rnd>
+      ))}
     </div>
   );
 };

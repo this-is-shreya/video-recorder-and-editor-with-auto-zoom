@@ -6,6 +6,7 @@ import { getCurrentSources } from "../../utils/getCurrentSources";
 import AppContext from "../../AppContext";
 import { pixels } from "../../utils/PixelsPerSecondEnum";
 import { mediaType } from "../../utils/MediaEnum";
+import { deleteBlobFromCache } from "../../utils/cache";
 
 const useKeyPress = (key, callback, withCtrl = false) => {
   const callbackRef = useRef(callback);
@@ -29,7 +30,14 @@ const useKeyPress = (key, callback, withCtrl = false) => {
   }, [key, withCtrl]);
 };
 
-const Timeline = ({ undo, redo, setUndo, setRedo, getWidthByAspectRatio }) => {
+const Timeline = ({
+  undo,
+  redo,
+  setUndo,
+  setRedo,
+  getWidthByAspectRatio,
+  handleSave,
+}) => {
   const {
     seekerPosition,
     setSeekerPosition,
@@ -58,9 +66,7 @@ const Timeline = ({ undo, redo, setUndo, setRedo, getWidthByAspectRatio }) => {
   const [isDeleteMedia, setIsDeleteMedia] = useState(false);
   const [positions, setPositions] = useState({}); // Store positions and sizes
   const [elements, setElements] = useState([]); // Store element IDs
-  const [top, setTop] = useState(
-    "22.5vh"
-  );
+  const [top, setTop] = useState("22.5vh");
 
   const [timelineWidth, setTimelineWidth] = useState(
     (90 * window.innerWidth) / 100
@@ -171,6 +177,9 @@ const Timeline = ({ undo, redo, setUndo, setRedo, getWidthByAspectRatio }) => {
       });
       console.log("updated sandt", updatedSourceAndTiming);
       setSourceAndTiming(() => [...updatedSourceAndTiming]);
+      deleteBlobFromCache(selectedElement.id)
+        .then(console.log)
+        .catch(console.error);
     } else {
       const updatedEffectsAndTiming = effectsAndTiming.filter((item) => {
         console.log("item", item, selectedElement);
@@ -209,81 +218,92 @@ const Timeline = ({ undo, redo, setUndo, setRedo, getWidthByAspectRatio }) => {
   }, [seekerPosition, effectsAndTiming]);
 
   useEffect(() => {
-    setTop(getHeightByAspectRatio(aspectRatio))
+    setTop(getHeightByAspectRatio(aspectRatio));
     console.log("top is ", top);
-    
   }, [aspectRatio]);
 
   useKeyPress("s", handleSplit);
 
   return (
-    <div
-      className="timeline"
-      style={{
-        minWidth: `${timelineWidth}px`,
-        top: `calc(${top} + 50vh)`,
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
-        <button onClick={handleSplit}>Split</button>
-        <button onClick={handleDeleteTrackMedia}>Delete</button>
-        <input
-          type="range"
-          min={0.5}
-          max={2}
-          step={0.5}
-          onChange={(e) => {
-            setZoomTimeline(Number(e.target.value));
-          }}
-        />
-        <label>{zoomTimeline}</label>
-        <select
-          onChange={(e) => {
-            setAspectRatio(e.target.value);
-          }}
+    <>
+      <div className="project-actions">
+        <button
+          onClick={() =>
+            handleSave(sourceAndTiming, effectsAndTiming, elements, positions)
+          }
         >
-          <option value="16/9">16:9</option>
-          <option value="9/16">9:16</option>
-          <option value="4/3">4:3</option>
-          <option value="3/4">3:4</option>
-        </select>
+          Save
+        </button>
+        <button>Export</button>
       </div>
+      <div
+        className="timeline"
+        style={{
+          minWidth: `${timelineWidth}px`,
+          top: `calc(${top} + 50vh)`,
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+          <button onClick={handleSplit}>Split</button>
+          <button onClick={handleDeleteTrackMedia}>Delete</button>
+          <input
+            type="range"
+            min={0.5}
+            max={2}
+            step={0.5}
+            onChange={(e) => {
+              setZoomTimeline(Number(e.target.value));
+            }}
+          />
+          <label>{zoomTimeline}</label>
+          <select
+            onChange={(e) => {
+              setAspectRatio(e.target.value);
+            }}
+          >
+            <option value="16/9">16:9</option>
+            <option value="9/16">9:16</option>
+            <option value="4/3">4:3</option>
+            <option value="3/4">3:4</option>
+          </select>
+        </div>
 
-      <Controls />
-      <Seeker />
-      <div className="all-tracks">
-        <Track
-          isDeleteMedia={isDeleteMedia}
-          setIsDeleteMedia={setIsDeleteMedia}
-          timelineWidth={timelineWidth}
-          setTimelineWidth={setTimelineWidth}
-          trackNum={2}
-          elements={elements}
-          setElements={setElements}
-          positions={positions}
-          setPositions={setPositions}
-          undo={undo}
-          redo={redo}
-          setUndo={setUndo}
-          setRedo={setRedo}
-        />
-        <Track
-          isDeleteMedia={isDeleteMedia}
-          setIsDeleteMedia={setIsDeleteMedia}
-          timelineWidth={timelineWidth}
-          setTimelineWidth={setTimelineWidth}
-          trackNum={1}
-          elements={elements}
-          setElements={setElements}
-          positions={positions}
-          setPositions={setPositions}
-          undo={undo}
-          redo={redo}
-          setUndo={setUndo}
-          setRedo={setRedo}
-        />
+        <Controls />
+        <Seeker />
+        <div className="all-tracks">
+          <Track
+            isDeleteMedia={isDeleteMedia}
+            setIsDeleteMedia={setIsDeleteMedia}
+            timelineWidth={timelineWidth}
+            setTimelineWidth={setTimelineWidth}
+            trackNum={2}
+            elements={elements}
+            setElements={setElements}
+            positions={positions}
+            setPositions={setPositions}
+            undo={undo}
+            redo={redo}
+            setUndo={setUndo}
+            setRedo={setRedo}
+          />
+          <Track
+            isDeleteMedia={isDeleteMedia}
+            setIsDeleteMedia={setIsDeleteMedia}
+            timelineWidth={timelineWidth}
+            setTimelineWidth={setTimelineWidth}
+            trackNum={1}
+            elements={elements}
+            setElements={setElements}
+            positions={positions}
+            setPositions={setPositions}
+            undo={undo}
+            redo={redo}
+            setUndo={setUndo}
+            setRedo={setRedo}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

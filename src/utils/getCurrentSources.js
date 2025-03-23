@@ -19,8 +19,8 @@ export const getCurrentSources = (
 
     // const endTime = item.newEnd > item.speedEnd ? item.speedEnd : item.newEnd;
     return (
-      Math.floor(currentTime / pixels[zoomTimeline]) >= item.newStart &&
-      Math.floor(currentTime / pixels[zoomTimeline]) <= item.newEnd
+      Math.floor(currentTime / pixels[zoomTimeline]) >= item?.newStart &&
+      Math.floor(currentTime / pixels[zoomTimeline]) <= item?.newEnd
     );
   });
 

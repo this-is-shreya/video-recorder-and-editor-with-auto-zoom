@@ -8,6 +8,7 @@ import { faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { pixels } from "./utils/PixelsPerSecondEnum";
 import TextEffect from "./components/TextEffect";
 import MediaPlayerContainer from "./components/MediaPlayerContainer";
+import { useParams } from "react-router-dom";
 
 const useKeyPress = (key, callback, withCtrl = false) => {
   const callbackRef = useRef(callback);
@@ -32,10 +33,17 @@ const useKeyPress = (key, callback, withCtrl = false) => {
 };
 
 function App() {
+  let { id } = useParams();
+  id = id ? id : Date.now();
+  const obj = JSON.parse(localStorage.getItem(id));
   const [seekerPosition, setSeekerPosition] = useState(0);
-  const [sourceAndTiming, setSourceAndTiming] = useState([]);
+  const [sourceAndTiming, setSourceAndTiming] = useState(
+    obj ? obj.sourceAndTiming : []
+  );
   const [currentSourceAndTiming, setCurrentSourceAndTiming] = useState([]);
-  const [effectsAndTiming, setEffectsAndTiming] = useState([]);
+  const [effectsAndTiming, setEffectsAndTiming] = useState(
+    obj ? obj.effectsAndTiming : []
+  );
   const [currentEffectsAndTiming, setCurrentEffectsAndTiming] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedElement, setSelectedElement] = useState({});
@@ -78,7 +86,27 @@ function App() {
         return "40vw"; // Default for 16:9 or unknown ratios
     }
   };
+  const handleSave = (sources, effects, elements, positions) => {
+    localStorage.setItem(
+      id,
+      JSON.stringify({
+        sourceAndTiming: sources,
+        effectsAndTiming: effects,
+        elements: elements,
+        positions: { ...positions },
+      })
+    );
+    let allIds = localStorage.getItem("video-project-id");
 
+    // Parse the stored value or initialize an empty array
+    allIds = allIds ? JSON.parse(allIds) : [];
+
+    if (!allIds.includes(id)) {
+      allIds.push(id);
+      localStorage.setItem("video-project-id", JSON.stringify(allIds));
+    }
+
+  };
   useEffect(() => {
     setCurrentTime(
       convertToFormattedTime(seekerPosition / pixels[zoomTimeline])
@@ -186,10 +214,10 @@ function App() {
           setDataArray: setDataArray,
           aspectRatio: aspectRatio,
           setAspectRatio: setAspectRatio,
+          projectId: id,
         }}
       >
         <Navbar />
-
         <div className="video-preview">
           <div
             className="video-player"
@@ -220,7 +248,14 @@ function App() {
           {/* <VE /> */}
         </div>
 
-        <Timeline undo={undo} redo={redo} setUndo={setUndo} setRedo={setRedo} getWidthByAspectRatio={getWidthByAspectRatio}/>
+        <Timeline
+          undo={undo}
+          redo={redo}
+          setUndo={setUndo}
+          setRedo={setRedo}
+          getWidthByAspectRatio={getWidthByAspectRatio}
+          handleSave={handleSave}
+        />
       </AppContext.Provider>
     </>
   );

@@ -34,7 +34,8 @@ const AppContext = createContext({
   dataArray: null,
   setDataArray: () => {},
   aspectRatio:null,
-  setAspectRatio:()=>{}
+  setAspectRatio:()=>{},
+  projectId: null,
 });
 
 export default AppContext;

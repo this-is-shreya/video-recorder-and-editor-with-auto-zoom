@@ -1,24 +1,19 @@
 import React, { useState } from "react";
 import App from "./App";
+import { useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
-  const [choice, setChoice] = useState(null);
+  const navigate = useNavigate();
+
+  const handleNew = () => {
+    const timestamp = Date.now(); // Generate a unique ID
+    navigate(`/${timestamp}`); // Navigate to new project
+  };
 
   return (
     <div>
-      {!choice && (
-        <>
-          <button onClick={() => setChoice("new")}>New</button>
-          <button onClick={() => setChoice("open")}>Open</button>
-        </>
-      )}
-      {choice === "new" && <App />}
-      {choice === "open" && (
-        <div>
-          <button onClick={() => setChoice(null)}>Go back</button>
-          <div>All your projects here</div>
-        </div>
-      )}
+      <button onClick={handleNew}>New</button>
+      <button onClick={() => navigate("/open")}>Open</button>
     </div>
   );
 };
