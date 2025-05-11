@@ -1,0 +1,32 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  font-family: "Courier New", monospace;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ffffff;
+  position: relative;
+}
+
+.text {
+  white-space: nowrap;
+}
+
+.cursor {
+  display: inline-block;
+  width: 3px;
+  height: 1.5em;
+  background-color: #ffffff;
+  margin-left: 4px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
