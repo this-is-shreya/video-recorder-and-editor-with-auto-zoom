@@ -2,12 +2,41 @@ import React, { useState } from "react";
 import { PiVideo } from "react-icons/pi";
 import { FiMoreVertical } from "react-icons/fi"; // Ellipsis menu icon
 import { Link } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
+import { notify } from "../utils/toast"
 
 const ProjectCard = ({ project }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const { getToken } = useAuth();
 
-  const handleDelete = () => {};
+  const handleDelete = async (project_id) => {
+    const token = await getToken();
+    if (!token) {
+      navigate("/auth");
+    } else {
+      fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/user/project/${project_id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+        .then(async (res) => {
+          if (res.status !== 200) {
+            notify("Error deleting project", "error");
+            return;
+          }
+          window.location.reload();
+        })
+        .catch((err) => {
+          notify("Error deleting project", "error");
+        });
+    }
+  };
 
   return (
     <div className="project-card">
@@ -43,7 +72,9 @@ const ProjectCard = ({ project }) => {
             <div className="button-wrapper">
               <button
                 className="accept cookie-button"
-                onClick={() => handleDelete()}
+                onClick={() => {
+                  handleDelete(project.project_id);
+                }}
               >
                 Yes
               </button>

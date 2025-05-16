@@ -53,13 +53,13 @@ const MediaPlayerContainer = ({ trackNum }) => {
             />
           )}
           {isTransitioning &&
-            _transitionType === transitionType.colouredWaves && <Transition1 />}
+            _transitionType === transitionType.waves && <Transition1 />}
           {isTransitioning &&
-            _transitionType === transitionType.blurredZoom && <Transition2 />}
+            _transitionType === transitionType.reveal && <Transition2 />}
           {isTransitioning && _transitionType === transitionType.lineWipe && (
             <Transition3 />
           )}
-          {isTransitioning && _transitionType === transitionType.circleWipe && (
+          {isTransitioning && _transitionType === transitionType.electronic && (
             <Transition4 />
           )}
           {isTransitioning &&

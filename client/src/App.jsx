@@ -7,17 +7,20 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { pixels } from "./utils/PixelsPerSecondEnum";
 import Header from "./components/header/Header";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import VideoPlayer from "./VideoPlayer";
 import ExportPreview from "./components/export/ExportPreview";
 import { convertBlobToBase64 } from "./utils/blobToBase64";
 import { notify } from "./utils/toast";
+import { useAuth, useUser } from "@clerk/clerk-react";
 
 function App() {
   let { id } = useParams();
   id = id ? id : Date.now();
-
-  // const obj = JSON.parse(localStorage.getItem(id));
+  const { getToken } = useAuth();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [token, setToken] = useState(null);
+  const navigate = useNavigate();
   const [seekerPosition, setSeekerPosition] = useState(0);
   const [sourceAndTiming, setSourceAndTiming] = useState([]);
   const [currentSourceAndTiming, setCurrentSourceAndTiming] = useState([]);
@@ -43,6 +46,7 @@ function App() {
   const [subtitleArray, setSubtitleArray] = useState([]);
   const [subtitleStyle, setSubtitleStyle] = useState(null);
   const [mediaFiles, setMediaFiles] = useState([]);
+  const [projectTitle, setProjectTitle] = useState("Project Title");
 
   const convertToFormattedTime = (position) => {
     const time = Math.floor(position);
@@ -74,6 +78,8 @@ function App() {
     }
   };
   const handleSave = async (sources, effects, elements, positions) => {
+    notify("Saving project...", "info");
+    const token = await getToken();
     sources = await convertBlobToBase64(sources);
     const projectId = window.location.pathname.split("/")[1];
     const projectData = {
@@ -82,15 +88,15 @@ function App() {
       elements: elements,
       positions: positions,
       project_id: projectId,
-      project_title: "Project Title",
+      project_title: projectTitle,
     };
     console.log("Saving project data:", projectData);
-    notify("Saving project...", "info");
 
     fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/save-data`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(projectData),
     })
@@ -119,6 +125,19 @@ function App() {
     }
   }, [seekerPosition]);
 
+  useEffect(() => {
+    const fetchToken = async () => {
+      if (isLoaded && isSignedIn) {
+        const token = await getToken();
+        if (!token) {
+          navigate("/auth");
+        } else {
+          setToken(token);
+        }
+      }
+    };
+    fetchToken();
+  }, []);
   return (
     <>
       <AppContext.Provider
@@ -167,6 +186,8 @@ function App() {
           setSubtitleStyle: setSubtitleStyle,
           mediaFiles: mediaFiles,
           setMediaFiles: setMediaFiles,
+          projectTitle:projectTitle,
+          setProjectTitle:setProjectTitle
         }}
       >
         {!isExportPreview && (

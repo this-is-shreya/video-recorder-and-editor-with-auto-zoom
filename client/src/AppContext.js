@@ -44,7 +44,9 @@ const AppContext = createContext({
   subtitleStyle: null,
   setSubtitleStyle: () => {},
   mediaFiles: null,
-  setMediaFiles: () => {}
+  setMediaFiles: () => {},
+  projectTitle: null,
+  setProjectTitle: () => {}
 });
 
 export default AppContext;

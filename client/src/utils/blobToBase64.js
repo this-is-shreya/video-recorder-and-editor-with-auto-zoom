@@ -34,7 +34,7 @@ export async function convertBlobToBase64(jsonArray) {
 }
 
 export async function convertBase64ToBlob(jsonArray) {
-  return jsonArray.map((item) => {
+  return jsonArray?.map((item) => {
     if (!item.source.startsWith("data:")) return item; // Skip non-base64
 
     const base64 = item.source.split(",")[1]; // Extract base64 part

@@ -7,6 +7,8 @@ const {
   getParticularProject,
   getAllProjects,
   feedback,
+  updateTitle,
+  deleteParticularProject,
 } = require("../controllers/user");
 const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
@@ -25,5 +27,5 @@ userRouter.post(
 );
 userRouter.post("/save-data", authenticate, saveData);
 userRouter.post("/feedback", authenticate, feedback);
-userRouter.post("/project", authenticate,)
+userRouter.delete("/project/:id", authenticate, deleteParticularProject);
 module.exports = userRouter;

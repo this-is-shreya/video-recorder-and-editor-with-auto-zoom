@@ -5,6 +5,9 @@ import VideoPlayer from "../../VideoPlayer";
 import AppContext from "../../AppContext";
 import { getCurrentSources } from "../../utils/getCurrentSources";
 import { notify } from "../../utils/toast";
+import { useAuth } from "@clerk/clerk-react";
+import { useNavigate } from "react-router-dom";
+import { Tooltip } from "react-tooltip";
 
 const ExportPreview = () => {
   const {
@@ -22,6 +25,8 @@ const ExportPreview = () => {
     convertToPixels,
     isExportPreview,
   } = useContext(AppContext);
+  const { getToken } = useAuth();
+  const navigate = useNavigate();
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -29,6 +34,7 @@ const ExportPreview = () => {
   const [maxTimeInSeconds, setMaxTimeInSeconds] = useState(0);
   const [progressValue, setProgressValue] = useState(0);
   const [showNullMessage, setShowNullMessage] = useState(false);
+
   // Refs for recording
   const streamRef = useRef(null);
   const recorderRef = useRef(null);
@@ -87,10 +93,56 @@ const ExportPreview = () => {
     return "video/webm"; // Fallback
   };
 
+  const getProject = async () => {
+    const token = await getToken();
+    if (!token) {
+      navigate("/auth");
+    } else {
+      fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/user/project/${projectId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Failed to fetch project data");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          notify("Project data loaded succesfully!", "success");
+          setSourceAndTiming(data.source_and_timing);
+          setEffectsAndTiming(data.effects_and_timing);
+        })
+        .catch((err) => {
+          notify(
+            "Error loading project. Please wait or try exporting again.",
+            "error"
+          );
+        });
+    }
+  };
+
+  const handleMessage = (event) => {
+    if (event.data && event.data.type === "export") {
+      const maxTime = event.data.maxTime;
+      const _maxTimeInSeconds = convertToPixels(maxTime) / 10; // Convert to seconds
+      setMaxTimeInSeconds(_maxTimeInSeconds);
+      if (_maxTimeInSeconds === 0) {
+        setShowNullMessage(true);
+      }
+    }
+  };
+
   useEffect(() => {
     if (seekerPosition === 0) {
       setRecordingTime(0);
-    } else {
+    } else if (isRecording) {
       setRecordingTime((prev) => prev + 1);
       if (recordingTime !== 0 && maxTimeInSeconds !== 0) {
         setProgressValue((recordingTime / maxTimeInSeconds) * 100);
@@ -101,58 +153,27 @@ const ExportPreview = () => {
       }
     }
   }, [seekerPosition]);
-  useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data && event.data.type === "export") {
-        const maxTime = event.data.maxTime;
-        const _maxTimeInSeconds = convertToPixels(maxTime) / 10; // Convert to seconds
-        setMaxTimeInSeconds(_maxTimeInSeconds);
-        if (_maxTimeInSeconds === 0) {
-          setShowNullMessage(true);
-        }
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
 
   // Fetch project data only once when component mounts
   useEffect(() => {
     // Basic validation of URL parameters
     if (resolution !== 720 && resolution !== 1080 && resolution !== 2160) {
-      console.warn("Invalid resolution, using default 720p");
+      notify("Invalid resolution, using default 720p", "warn");
     }
 
     if (bitrate !== 5000000 && bitrate !== 10000000 && bitrate !== 15000000) {
-      console.warn("Invalid bitrate, using default 5Mbps");
+      notify("Invalid bitrate, using default 5Mbps", "warn");
     }
 
     if (fps !== 30 && fps !== 40 && fps !== 50 && fps !== 60) {
-      console.warn("Invalid fps, using default 30fps");
+      notify("Invalid fps, using default 30fps", "warn");
     }
 
-    fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/project/${projectId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch project data");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        console.log("Project data loaded:", data);
-        setSourceAndTiming(data.source_and_timing);
-        setEffectsAndTiming(data.effects_and_timing);
-      })
-      .catch((err) => {
-        console.error("ExportPreview fetch error:", err);
-      });
+    notify("Loading project. Please wait.", "info");
+    getProject();
+    window.addEventListener("message", handleMessage);
+
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   // Make sure we update current sources when needed
@@ -373,7 +394,8 @@ const ExportPreview = () => {
 
       recorder.onstop = async () => {
         setRecordingStatus("Processing recording...");
-
+        stopRequested = true;
+        setIsRecording(false);
         // Create blob with the mime type we're using
         let blob = null;
         try {
@@ -443,17 +465,20 @@ const ExportPreview = () => {
                   }
                   setSubtitleArray(data.subtitles);
                   console.log("Subtitles generated:", data.subtitles);
+                  setIsPlaying(false);
                   cleanupRecording();
                 })
                 .catch((err) => {
                   console.error("Failed to generate subtitles:", err);
                   setRecordingStatus("Failed to generate subtitles");
+                  setIsPlaying(false);
                   cleanupRecording();
                 });
             })
             .catch((err) => {
               console.error("Failed to upload video:", err);
               setRecordingStatus("Failed to upload video");
+              setIsPlaying(false);
               cleanupRecording();
             });
         } else {
@@ -647,10 +672,12 @@ const ExportPreview = () => {
                 Subtitles generated successfully!
               </h2>
             )}
-          <VideoPlayer
-            _aspectRatio={aspectRatio}
-            isExportRecording={isRecording}
-          />
+          {recordingTime <= maxTimeInSeconds && (
+              <VideoPlayer
+                _aspectRatio={aspectRatio}
+                isExportRecording={isRecording}
+              />
+            )}
           {!isRecording && (
             <div
               style={{
@@ -662,24 +689,48 @@ const ExportPreview = () => {
                 gap: "10px",
               }}
             >
-              <button
-                onClick={startRecording}
-                disabled={isRecording}
-                style={{
-                  padding: "10px 20px",
-                  background: isRecording ? "#888" : "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "5px",
-                  cursor: isRecording ? "not-allowed" : "pointer",
-                }}
-              >
-                {"Export"}
-              </button>
+              {recordingTime <= maxTimeInSeconds && (
+                  <button
+                    className="tooltip-export"
+                    data-tooltip-content={
+                      maxTimeInSeconds === 0
+                        ? "Please export again to proceed"
+                        : isRecording
+                        ? "Export has started"
+                        : "Click here to export"
+                    }
+                    onClick={startRecording}
+                    disabled={isRecording || maxTimeInSeconds === 0}
+                    style={{
+                      padding: "10px 20px",
+                      background:
+                        isRecording || maxTimeInSeconds === 0
+                          ? "#888"
+                          : "#4CAF50",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "5px",
+                      cursor: isRecording ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {"Export"}
+                  </button>
+                )}
             </div>
           )}
         </>
       )}
+      <Tooltip
+        anchorSelect=".tooltip-export"
+        place="top"
+        style={{
+          backgroundColor: "#892fff",
+          color: "white",
+          fontSize: "12px",
+          padding: "5px",
+          borderRadius: "4px",
+        }}
+      />
     </div>
   );
 };

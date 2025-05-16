@@ -4,29 +4,27 @@ import { VscNewFolder } from "react-icons/vsc";
 import { FaFolderOpen } from "react-icons/fa";
 import { useUser, useAuth, SignedIn } from "@clerk/clerk-react";
 import { notify } from "./utils/toast";
+import Header from "./components/header/Header";
 
 const LandingPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
   const { getToken } = useAuth();
   const navigate = useNavigate();
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    const sendToken = async () => {
-      const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      console.log("Backend response:", res);
+    const fetchToken = async () => {
+      if (isLoaded && isSignedIn) {
+        const token = await getToken();
+        if (!token) {
+          navigate("/auth");
+        } else {
+          setToken(token);
+        }
+      }
     };
-
-    if (isSignedIn) {
-      sendToken();
-    }
-  }, [isSignedIn, getToken]);
+    fetchToken();
+  }, []);
 
   if (!isLoaded) return <h1 style={{ textAlign: "center" }}>Loading...</h1>;
   if (!isSignedIn)
@@ -36,9 +34,10 @@ const LandingPage = () => {
       </h1>
     );
 
-  const handleNew = async() => {
-    const token = await getToken();
-
+  const handleNew = async () => {
+    if (!token) {
+      navigate("/auth");
+    }
     const timestamp = Date.now();
     const projectData = {
       source_and_timing: null,
@@ -48,17 +47,22 @@ const LandingPage = () => {
       project_id: timestamp,
       project_title: "Project Title",
     };
-    notify("Craeting new project...", "info");
+    notify("Creating new project...", "info");
 
     fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/save-data`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(projectData),
     })
       .then((res) => {
+        console.log("TOKEN ", token);
+
+        if (res.status === 401) {
+          navigate("/auth");
+        }
         if (res.ok) {
           notify("Project created successfully!", "success");
           navigate(`/${timestamp}`);
@@ -67,45 +71,51 @@ const LandingPage = () => {
         }
       })
       .catch((error) => {
+        console.log("TOKEN ", token);
+
         notify("Error creating new project", "error");
+        console.log(error);
       });
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        marginTop: "50px",
-        gap: "20px",
-      }}
-    >
-      <button
-        className="project-card"
+    <>
+      <Header />
+      <div
         style={{
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
+          marginTop: "50px",
+          gap: "20px",
         }}
-        onClick={handleNew}
       >
-        <VscNewFolder size={35} />
-        <label style={{ fontSize: "25px" }}>New</label>
-      </button>
-      <button
-        className="project-card"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-        onClick={() => navigate("/open")}
-      >
-        <FaFolderOpen size={35} />
-        <label style={{ fontSize: "25px" }}>Open</label>{" "}
-      </button>
-    </div>
+        <button
+          className="project-card"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          onClick={handleNew}
+        >
+          <VscNewFolder size={35} />
+          <label style={{ fontSize: "25px" }}>New</label>
+        </button>
+        <button
+          className="project-card"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          onClick={() => navigate("/open")}
+        >
+          <FaFolderOpen size={35} />
+          <label style={{ fontSize: "25px" }}>Open</label>{" "}
+        </button>
+      </div>
+    </>
   );
 };
 

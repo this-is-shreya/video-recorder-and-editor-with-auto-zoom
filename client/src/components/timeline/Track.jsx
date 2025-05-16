@@ -87,7 +87,7 @@ const Track = ({
       setElements((prev) => [...prev, { id, trackNum }]);
       setTrackMedia([
         ...trackMedia,
-        { id, src, mediaType: _mediaType, duration },
+        { id, src, mediaType: _mediaType, duration:Number(duration) },
       ]);
       setPositions((prev) => ({
         ...prev,
@@ -163,7 +163,7 @@ const Track = ({
     const newX = data.x;
     const newY = data.y;
     const width = positions[id]?.width || 100;
-    if(newX - positions[id].x <= 0 && newY - positions[id].y <= 0) {
+    if(Math.abs(newX - positions[id].x) === 0 && Math.abs(newY - positions[id].y) === 0) {
       return;
     }
     const isOverlapping = checkOverlap(
@@ -506,7 +506,7 @@ const Track = ({
 
     const trackWidth = currentTrack.getBoundingClientRect().width;
     console.log("track width", trackWidth, rightEdge);
-    if (rightEdge > trackWidth) {
+    if (Math.round(rightEdge) >= Math.round(trackWidth)) {
       const extra = 60 * pixels[zoomTimeline];
       const allTracks = document.querySelectorAll(".track");
       allTracks.forEach((track) => {
@@ -539,10 +539,6 @@ const Track = ({
           duration: Math.floor(Number(source.newEnd - source.newStart)),
         });
       }
-      if (!elements.some((el) => el.id === source.id)) {
-        setElements((prev) => [...prev, { id: source.id, trackNum }]);
-      }
-
       setPositions((prev) => ({
         ...prev,
         [source.id]: {
@@ -741,9 +737,8 @@ const Track = ({
       );
       expandTracksIfNeeded(maxNewEnd * pixels[zoomTimeline], trackNum);
       setTrackMedia(tracks);
-      
-
       setFetchFromTimeline(false);
+      notify("Project data loaded successfully!", "success");
     }
   }, [fetchFromTimeline]);
 
@@ -870,7 +865,7 @@ const Track = ({
               m.src.includes("background") || m.mediaType === mediaType.icons
             );
           }}
-          onDragStart={(e, data) => {
+          onDrag={(e, data) => {
             const width = positions[m.id]?.width || 100;
             expandTracksIfNeeded(data.x + width, trackNum);
           }}

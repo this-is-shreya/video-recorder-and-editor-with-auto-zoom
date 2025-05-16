@@ -7,11 +7,9 @@ module.exports.authenticate = async (req, res, next) => {
   if (!auth.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-
   try {
     const user = await clerkClient.users.getUser(auth.userId);
     req.user = user;
-    console.log("USER IS", user);
     const getQuery = `SELECT * FROM USERS WHERE email=$1`;
     const result = await pool.query(getQuery, [
       user.emailAddresses[0].emailAddress,
@@ -24,10 +22,11 @@ module.exports.authenticate = async (req, res, next) => {
       ];
       await pool.query(query, values);
     }
-    res.status(200).json({ message: "User authenticated" });
-    next()
+    console.log("AUTHENTICATED");
+    
+    next();
   } catch (error) {
     console.error("Error fetching user:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };

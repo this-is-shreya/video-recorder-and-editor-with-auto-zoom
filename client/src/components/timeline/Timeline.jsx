@@ -17,6 +17,8 @@ import { MdDelete } from "react-icons/md";
 import { LuRefreshCw } from "react-icons/lu";
 import { Tooltip } from "react-tooltip";
 import { notify } from "../../utils/toast";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { useNavigate } from "react-router-dom";
 
 const useKeyPress = (key, callback, withCtrl = false) => {
   const callbackRef = useRef(callback);
@@ -78,9 +80,15 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     dataArray,
     setDataArray,
     subtitleArray,
+    setProjectTitle
   } = useContext(AppContext);
 
+  const { getToken } = useAuth();
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  const navigate = useNavigate();
   const intervalRef = useRef(null);
+  const [token, setToken] = useState(null);
   const [isDeleteMedia, setIsDeleteMedia] = useState(false);
   const [positions, setPositions] = useState({}); // Store positions and sizes
   const [elements, setElements] = useState([]); // Store element IDs
@@ -147,10 +155,13 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
         seekerPosition / pixels[zoomTimeline] <= source.newEnd
       ) {
         const roundedTime = Math.floor(seekerPosition / pixels[zoomTimeline]);
+        const newId = Date.now();
+        console.log("SPLIT AT ", roundedTime);
+
         // Second half (new split segment)
         const newSource = {
           ...source,
-          id: Date.now(),
+          id: newId,
           start: roundedTime,
           newStart: roundedTime,
           speedStart: roundedTime,
@@ -169,7 +180,8 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
         // First half
         const updatedSource = {
           ...source,
-          speedEnd: roundedTime, //it's a special case, instead of newEnd I'm using seekerPosition
+          id: Number(source.id),
+          speedEnd: roundedTime,
           newEnd: roundedTime,
           end: roundedTime,
           zoomCenter: { x: 0, y: 0 },
@@ -184,6 +196,10 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           id: newSource.id,
           mediaType: newSource.mediaType,
         });
+        setElements((prev) => [
+          ...prev,
+          { id: newId, trackNum: source.trackNum },
+        ]);
       } else {
         newSources.push(source);
       }
@@ -263,13 +279,18 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ feedback: feedback }),
-    }).then((res) => {
-      if (res.ok) {
-        setTimeout(() => {
-          setIsFeedbackButtonDisabled(false);
-        }, 2000);
-      }
-    });
+    })
+      .then((res) => {
+        if (res.ok) {
+          setTimeout(() => {
+            setIsFeedbackButtonDisabled(false);
+            notify("Feedback sent successfully!", "success");
+          }, 2000);
+        }
+      })
+      .catch((err) => {
+        notify("Error sending feedback. Please try again later.", "error");
+      });
   };
 
   const handleUndo = () => {
@@ -318,33 +339,62 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     console.log("top is ", top);
   }, [aspectRatio]);
   useEffect(() => {
+    notify("Loading project data. Please wait.", "info");
     const id = window.location.pathname.split("/")[1];
-    fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/project/${id}`)
-      .then(async (res) => {
-        const data = await res.json();
-        const updatedSourceAndTiming = await convertBase64ToBlob(
-          data.source_and_timing
-        );
-        setSourceAndTiming(
-          updatedSourceAndTiming ? updatedSourceAndTiming : []
-        );
-        setEffectsAndTiming(
-          data.effects_and_timing ? data.effects_and_timing : []
-        );
-        setPositions(data.positions ? data.positions : {});
-        setElements(data.elements ? data.elements : []);
-        console.log(
-          "inside timeline",
-          sourceAndTiming,
-          effectsAndTiming,
-          elements,
-          positions
-        );
-        setFetchFromTimeline(true);
-      })
-      .catch((err) => {
-        notify("Error fetching project data", "error");
-      });
+    const fetchToken = async () => {
+      const token = await getToken();
+      if (!token) {
+        navigate("/auth");
+      } else {
+        
+        fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/project/${id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then(async (res) => {
+            if (res.status === 401) {
+              navigate("/auth");
+            }
+            const data = await res.json();
+            setProjectTitle(data.project_title);
+            if (
+              !data ||
+              (!data.source_and_timing &&
+                !data.effects_and_timing &&
+                !data.positions &&
+                !data.elements)
+            ) {
+              return;
+            }
+            const updatedSourceAndTiming = await convertBase64ToBlob(
+              data.source_and_timing
+            );
+            setSourceAndTiming(
+              updatedSourceAndTiming ? updatedSourceAndTiming : []
+            );
+            setEffectsAndTiming(
+              data.effects_and_timing ? data.effects_and_timing : []
+            );
+            setPositions(data.positions ? data.positions : {});
+            setElements(data.elements ? data.elements : []);
+            console.log(
+              "inside timeline",
+              sourceAndTiming,
+              effectsAndTiming,
+              elements,
+              positions
+            );
+            setFetchFromTimeline(true);
+          })
+          .catch((err) => {
+            notify("Error fetching project data", "error");
+          });
+      }
+    };
+    fetchToken();
   }, []);
   // Save state to history when source/effects change
   useEffect(() => {
@@ -492,12 +542,14 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
             <option value="3/4">3:4</option>
           </select>
         </div>
-        <Controls />
-        <Seeker />
+
         <div
           className="all-tracks-wrapper"
           style={{ overflowX: "auto", width: "100%" }}
         >
+          <Controls />
+          <Seeker />
+
           <div className="all-tracks">
             <Track
               isDeleteMedia={isDeleteMedia}
