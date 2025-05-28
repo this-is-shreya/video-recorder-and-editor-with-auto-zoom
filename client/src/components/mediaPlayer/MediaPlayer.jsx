@@ -31,28 +31,22 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
     currentSourceAndTiming,
     isPlaying,
     seekerPosition,
-    setCurrentSourceAndTiming,
-    sourceAndTiming,
     setSourceAndTiming,
     selectedElement,
     seekerPositionManuallyChanged,
     setSeekerPositionManuallyChanged,
-    setSeekerPosition,
     isSplit,
     zoomTimeline,
     isTrim,
     setIsTrim,
-    setIsPlaying,
     isExportPreview,
-    convertToPixels,
-    maxTime,
   } = useContext(AppContext);
 
   // Ensure there is valid video data
   const currentSourceAndTimingFiltered = currentSourceAndTiming.filter(
     (item) => item.trackNum === trackNum
   );
-  console.log("MP: ", currentSourceAndTimingFiltered, trackNum);
+  // console.log("MP: ", currentSourceAndTimingFiltered, trackNum);
   if (!currentSourceAndTiming || !currentSourceAndTimingFiltered[0]) {
     return null;
   }
@@ -79,7 +73,7 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
     transitionType,
     transitionFromId,
   } = currentSourceAndTimingFiltered[0];
-  console.log("currentsandt", currentSourceAndTiming);
+  // console.log("currentsandt", currentSourceAndTiming);
   // Initialize state for position and size from currentSourceAndTiming
   const [position, setPosition] = useState(
     currentSourceAndTimingFiltered[0].position || { x: 0, y: 0 }
@@ -98,7 +92,7 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
   const [videoSource, setVideoSource] = useState(source); // To track video source changes
   const [audioSource, setAudioSource] = useState(source); // To track audio source changes
   const [videoLoaded, setVideoLoaded] = useState(false);
-
+  const [startsFromForReference, setStartsFromReference] = useState(startsFrom);
   // Update `currentSourceAndTiming` when size or position changes
   const updateContext = (newPosition, newSize) => {
     // setCurrentSourceAndTiming(updatedData);
@@ -109,12 +103,6 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
           ? { ...item, position: newPosition, size: newSize }
           : item
       )
-    );
-    console.log(
-      "Updated Context with New Size:",
-      newSize,
-      " for ",
-      currentSourceAndTimingFiltered[0].id
     );
   };
 
@@ -136,19 +124,18 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
 
     const video = videoRef.current;
     video.volume = volume;
-
-    if (!hasSetStartTime.current) {
-      setTimeout(() => {
-        video.currentTime = startsFrom;
-        hasSetStartTime.current = true;
-      }, 50);
-    }
-    if (!videoSource || videoSource !== source) {
-      console.log("New video loaded, updating start time");
+    if (!videoSource || videoSource !== source || startsFromForReference !== startsFrom) {
       // videoRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
       // if (isPlaying) videoRef.current.play();
       hasSetStartTime.current = false;
       setVideoSource(source);
+    }
+    if (!hasSetStartTime.current) {
+      setTimeout(() => {
+        video.currentTime = startsFrom;
+        hasSetStartTime.current = true;
+        setStartsFromReference(startsFrom);
+      }, 50);
     }
     video.onloadedmetadata = () => {
       setSize({ width: size.width, height: size.height });
@@ -163,16 +150,16 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
       const newTime =
         Math.floor(seekerPosition / pixels[zoomTimeline]) -
         newStart +
-        startsFrom;
+        startsFromForReference;
       video.currentTime =newTime
       
-      console.log(">>Seeking to:", newTime);
-      console.log(">>",
-        seekerPosition,
-        newStart,
-        startsFrom,
-        newTime,
-      );
+      // console.log(">>Seeking to:", newTime);
+      // console.log(">>",
+      //   seekerPosition,
+      //   newStart,
+      //   startsFrom,
+      //   newTime,
+      // );
       setSeekerPositionManuallyChanged(false);
       setIsTrim(false);
     }
@@ -198,7 +185,6 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
       hasSetStartTime.current = false;
     }
     if (!audioSource || audioSource !== source) {
-      console.log("New audio loaded, updating start time");
       // audioRef.current.currentTime = Math.floor(startTime - newStart * 0.1);
       // if (isPlaying) audioRef.current.play();
       hasSetStartTime.current = false;
@@ -216,7 +202,7 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
 
     // Only seek if the user manually scrubs
     if (seekerPositionManuallyChanged) {
-      console.log("Seeking to:", seekerPosition);
+      // console.log("Seeking to:", seekerPosition);
       audio.currentTime =
         Math.floor(seekerPosition / pixels[zoomTimeline]) -
         newStart +
@@ -234,7 +220,6 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
 
     const handleTimeUpdate = () => {
       if (audio.currentTime >= newEnd) {
-        console.log("Reached end time, stopping playback");
         audio.pause();
         audio.currentTime = newEnd; // Ensure it doesn't go beyond
       }
@@ -270,7 +255,6 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
           // Zoom out smoothly after zoomDuration
           setCurrentZoomLevel(1);
         }
-        console.log("setting zoom as ", currentZoomLevel);
       }
     };
 
@@ -286,7 +270,6 @@ const MediaPlayer = ({ trackNum, setIsTransitioning, setTransitionType }) => {
     ) {
       setIsTransitioning(true);
       setTransitionType(transitionType);
-      console.log(">> set transition", transitionType);
     }
     if (newStart - Math.floor(seekerPosition / pixels[zoomTimeline]) > 1) {
       setIsTransitioning(false);

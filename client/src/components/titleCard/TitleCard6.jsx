@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import styles from "./styles/TitleCard6.module.css"
 
 
-export default function TitleCard6({ text }) {
+export default function TitleCard6({ text, trackNum }) {
   const [channelName, tagline] = text.split(" ")
   const [isVisible, setIsVisible] = useState(false)
 
@@ -20,7 +20,7 @@ export default function TitleCard6({ text }) {
   }, [])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{zIndex:trackNum}}>
       <div className={`${styles.content} ${isVisible ? styles.visible : ""}`}>
         <div className={styles.grid}>
           {Array.from({ length: 20 }).map((_, i) => (

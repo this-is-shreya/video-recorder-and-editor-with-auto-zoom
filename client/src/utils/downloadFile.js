@@ -17,6 +17,6 @@ export const downloadFile = async (recordedObject) => {
     saveAs(file);
     // recordedObject.clearBlobUrl();
   } catch (error) {
-    console.error("Error downloading the file:", error);
+    // console.error("Error downloading the file:", error);
   }
 };

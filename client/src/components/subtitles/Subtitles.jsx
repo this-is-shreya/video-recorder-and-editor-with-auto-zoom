@@ -7,14 +7,13 @@ import { notify } from "../../utils/toast";
 const Subtitles = () => {
   const {
     sourceAndTiming,
-    aspectRatio,
-    maxTime,
+    setIsExportPreview,
     subtitleArray,
     setSubtitleArray,
-    setSubtitleStyle,
     setSeekerPosition,
     setSeekerPositionManuallyChanged,
     zoomTimeline,
+    setIsSubtitleGen
   } = useContext(AppContext);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedWord, setEditedWord] = useState("");
@@ -33,9 +32,8 @@ const Subtitles = () => {
       notify("Please ensure there's a video or audio element at the start", "warning");
       return;
     }
-    const id = window.location.pathname.split("/")[1];
-    const exportUrl = `/${id}/export?aspectRatio=${aspectRatio}&rate=5000000&fps=30&type=generate-subtitles`;
-    window.open(exportUrl, "_blank");
+    setIsSubtitleGen(true);
+    setIsExportPreview(true)
   };
   // Group words by 5-second intervals
   const groupWords = (subtitles) => {
@@ -114,7 +112,6 @@ const Subtitles = () => {
 
     setEditingIndex(null);
     setEditedWord("");
-    console.log(subtitleArray);
   };
 
   const _setSeekerPosition = (e) => {
@@ -124,41 +121,16 @@ const Subtitles = () => {
     setSeekerPosition(valInPixels);
     setSeekerPositionManuallyChanged(true);
   };
-  // Only group once when subtitles first come from server
-  useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data && event.data.type === "SUBTITLES_GENERATED") {
-        setSubtitleArray(event.data.subtitles);
-        groupWords(event.data.subtitles);
-        setSubtitleStyle(subStyles.style1);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
 
   useEffect(() => {
-    const sampleSubtitle = [
-      { conf: 1, end: 1.98, start: 1.68, word: "hello" },
-      { conf: 1, end: 2.61, start: 1.98, word: "everyone" },
-      { conf: 0.8408, end: 3.27, start: 3.03, word: "this" },
-      { conf: 0.500852, end: 3.42, start: 3.27, word: "is" },
-      { conf: 0.937641, end: 4.08, start: 3.430877, word: "share" },
-      { conf: 0.413824, end: 4.656, start: 4.2, word: "shadow" },
-      { conf: 0.492194, end: 5.04, start: 4.656, word: "hope" },
-      { conf: 1, end: 5.73, start: 5.46, word: "it's" },
-      { conf: 0.561888, end: 5.88, start: 5.82, word: "a" },
-      { conf: 0.649051, end: 6.54, start: 5.89384, word: "gordon" },
-      { conf: 0.525115, end: 8.28, start: 7.86, word: "well" },
-    ];
-    setSubtitleArray(sampleSubtitle);
-    groupWords(sampleSubtitle);
-    console.log("subtitlearray set", subtitleArray);
-  }, []);
-  useEffect(() => {
-    console.log("subtitleArray updated", subtitleArray);
+    if (
+      Array.isArray(subtitleArray) &&
+      subtitleArray.length > 0 &&
+      !subtitleArray[0].interval
+    ) {
+      // The subtitleArray is flat and not grouped — group it
+      groupWords(subtitleArray);
+    }
   }, [subtitleArray]);
   return (
     <div className="panel">
@@ -173,6 +145,7 @@ const Subtitles = () => {
             borderRadius: "5px",
             border: "none",
             width: "60%",
+            height:"40px",
             marginLeft: "20%",
           }}
         >
@@ -194,7 +167,7 @@ const Subtitles = () => {
                       borderRadius: "4px",
                     }}
                   >
-                    <u>{group.interval.split(" - ")[0]}</u>
+                    <u>{group.interval?.split(" - ")[0]}</u>
                   </button>
                 </td>
                 <td>

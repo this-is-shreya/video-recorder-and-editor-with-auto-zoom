@@ -4,7 +4,7 @@ import styles from "./styles/bubble-text.module.css";
 import AppContext from "../../../AppContext";
 
 
-export default function BubbleText({ text }) {
+export default function BubbleText({ text, trackNum }) {
   const {isPlaying} = useContext(AppContext)
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -25,6 +25,7 @@ export default function BubbleText({ text }) {
         className={`${styles.bubbleContainer} ${
           isPlaying && isAnimating ? styles.animate : ""
         }`}
+        style={{ zIndex: trackNum }}
       >
         {text.split("").map((char, index) => (
           <span
@@ -38,7 +39,7 @@ export default function BubbleText({ text }) {
           </span>
         ))}
       </div>
-      <div className={styles.bubbles}>
+      <div className={styles.bubbles} style={{ zIndex: trackNum }}>
         {Array.from({ length: 15 }).map((_, i) => (
           <div
             key={i}

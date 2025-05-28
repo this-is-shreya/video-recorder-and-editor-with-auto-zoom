@@ -11,7 +11,6 @@ const BasicText = () => {
     isPlaying
   } = useContext(AppContext);
   if (!effectsAndTiming || !effectsAndTiming[0]) {
-    console.log("No effects and timing");
     return;
   }
 
@@ -54,7 +53,6 @@ const BasicText = () => {
           : item
       )
     );
-    console.log("Updated Context with New Size:", newSize);
   };
   useEffect(() => {
     setText(currentEffectsAndTimingFiltered.text);
@@ -66,7 +64,6 @@ const BasicText = () => {
     setIsBackgroundTransparent(
       currentEffectsAndTimingFiltered.isBackgroundTransparent
     );
-    console.log("Current Effects and Timing is ", currentEffectsAndTimingFiltered);
   }, [currentEffectsAndTimingFiltered]);
   return (
     <div

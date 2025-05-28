@@ -12,8 +12,6 @@ import Transition6 from "../transitions/Transition6";
 
 const MediaPlayerContainer = ({ trackNum }) => {
   const { currentSourceAndTiming, setIsPlaying, isExportPreview, sourceAndTiming } = useContext(AppContext);
-  console.log("currentSourceAndTiming", currentSourceAndTiming, trackNum);
-  console.log("SOURCEANDTIMING RECEIVED", sourceAndTiming);
   
   const currentSourceAndTimingFiltered = currentSourceAndTiming.filter(
     (item) => item.trackNum === trackNum

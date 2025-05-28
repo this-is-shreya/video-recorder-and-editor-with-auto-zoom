@@ -1,6 +1,9 @@
 import React from 'react'
 
 const Subtitle6 = ({ wordsToShow }) => {
+  if (!wordsToShow || wordsToShow.length === 0) {
+    return null;
+  }
   return (
     <div
       className="subtitles-preview"

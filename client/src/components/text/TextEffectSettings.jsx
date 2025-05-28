@@ -9,7 +9,6 @@ const TextEffectSettings = () => {
     setEffectsAndTiming,
     setIsTimerChanged,
   } = useContext(AppContext);
-  console.log("SELECTED ELEMENT IS ", selectedElement);
   const currentEffectsAndTiming = effectsAndTiming.find(
     (item) => item.id === selectedElement.id
   );
@@ -82,7 +81,6 @@ const TextEffectSettings = () => {
     );
   };
   const updateBackgroundTransparency = (e) => {
-    console.log("marking checkbox to ", e.target.checked);
 
     setEffectsAndTiming((prev) =>
       prev.map((item) =>

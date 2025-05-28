@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import styles from "./styles/TitleCard5.module.css"
 
 
-export default function TitleCard5({ text }) {
+export default function TitleCard5({ text, trackNum }) {
   const [channelName, tagline] = text.split(" ")
   const [isVisible, setIsVisible] = useState(false)
 
@@ -20,7 +20,7 @@ export default function TitleCard5({ text }) {
   }, [])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{zIndex:trackNum}}>
       <div className={styles.background}>
         {Array.from({ length: 20 }).map((_, i) => (
           <div

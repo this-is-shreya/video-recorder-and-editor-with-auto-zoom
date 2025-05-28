@@ -6,6 +6,7 @@
   align-items: center;
   overflow: hidden;
   background-color: #fcf6f6;
+  position: absolute;
 }
 
 .wrapper {

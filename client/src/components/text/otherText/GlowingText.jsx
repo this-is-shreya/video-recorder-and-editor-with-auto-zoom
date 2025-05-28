@@ -4,7 +4,7 @@ import styles from "./styles/glowingtext.module.css";
 import AppContext from "../../../AppContext";
 
 
-export default function GlowingText({ text }) {
+export default function GlowingText({ text, trackNum }) {
   const {isPlaying} = useContext(AppContext)
   const [isVisible, setIsVisible] = useState(false);
 

@@ -1,78 +1,206 @@
-import { exec } from "child_process";
-import html2canvas from "html2canvas";
+// useCaptureVideoPlayer.js
+import { useContext, useRef } from "react";
+import AppContext from "../AppContext";
+import { notify } from "./toast";
 
-export async function captureDivAsVideo() {
-  const div = document.querySelector(".video-preview");
+export const useCaptureVideoPlayer = () => {
+  const {
+    setIsPlaying,
+    setSeekerPosition,
+    setSeekerPositionManuallyChanged,
+    seekerPosition,
+    maxTime,
+    convertToPixels,
+    setZoomTimeline,
+    startRecording,
+    stopRecording,
+    mediaBlobUrl,
+    clearBlobUrl,
+  } = useContext(AppContext);
 
-  if (!div) {
-    console.error("Div not found!");
-    return null;
-  }
+  // Add refs to manage streams and cleanup
+  const streamRef = useRef(null);
+  const intervalRef = useRef(null);
 
-  // Convert `.video-player` to canvas
-  const canvas = await html2canvas(div, { logging: false, useCORS: true });
+  const capture = async () => {
+    try {
+      // Reset state
+      setIsPlaying(false);
+      setSeekerPosition(0);
+      setSeekerPositionManuallyChanged(true);
+      setZoomTimeline("1");
+      let seeker = seekerPosition;
+      const maxTimeInPixels = convertToPixels(maxTime);
 
-  // Convert to video stream
-  return canvas.captureStream(30); // 30 FPS
-}
+      // Get the video player element
+      const playerElement = document.querySelector(".video-player");
+      if (!playerElement) {
+        // console.error("No .video-player found");
+        notify(
+          "Something went wrong. Please refresh the page or try exporting again.",
+          "error"
+        );
+        return;
+      }
 
-async function convertVideo(resolution) {
-  let scale = resolution === 480 ? "854:480" : "1280:720";
-  let outputFile = `output_${resolution}p.mp4`;
-}
+      // Get more precise coordinates of the player in the viewport
+      const rect = playerElement.getBoundingClientRect();
 
-async function captureInternalAudio() {
-  const audioContext = new AudioContext();
-  const destination = audioContext.createMediaStreamDestination();
+      // Record these dimensions for later processing with FFmpeg
+      window.captureRect = {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        // Store window scroll position to adjust for it
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+      };
 
-  // Get all media players inside `.video-player`
-  const mediaPlayers = document.querySelectorAll(".video-player");
 
-  mediaPlayers.forEach((video) => {
-    const source = audioContext.createMediaElementSource(video);
-    source.connect(destination);
-    source.connect(audioContext.destination); // Play sound while recording
+      // Use react-media-recorder's startRecording (from context)
+      await startRecording();
+      // Start playback
+      setIsPlaying(true);
+
+      // Clear any existing intervals
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+
+      // Monitor playback progress
+      intervalRef.current = setInterval(async () => {
+        if (seeker >= maxTimeInPixels) {
+          // End recording when we reach the end
+          setIsPlaying(false);
+          stopRecording();
+          clearInterval(intervalRef.current);
+          await processVideoWithExactCoordinates(mediaBlobUrl, clearBlobUrl);
+        } else {
+          seeker += 9; // Increment seeker position
+        }
+      }, 1000);
+    } catch (error) {
+      notify("Something went wrong during capture", "error");
+      cleanupCapture();
+    }
+  };
+
+  const cleanupCapture = () => {
+    // Stop any active intervals
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // Stop any active streams
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    setIsPlaying(false);
+  };
+
+  const processVideoWithExactCoordinates = async (
+    mediaBlobUrl,
+    clearBlobUrl
+  ) => {
+    try {
+      const blobUrl = await checkBlobUrl(() => mediaBlobUrl);
+      const recordedBlob = await fetch(blobUrl).then((r) => r.blob());
+      // Get the stored capture rectangle that we saved during recording
+      const captureRect =
+        window.captureRect ||
+        document.querySelector(".video-player").getBoundingClientRect();
+
+      // Account for scroll position in the coordinates
+      const processedBlob = await processVideoWithFFmpeg(
+        recordedBlob,
+        {
+          // Add scroll offsets to get absolute document coordinates
+          top: captureRect.top + (captureRect.scrollY || 0),
+          left: captureRect.left + (captureRect.scrollX || 0),
+          width: captureRect.width,
+          height: captureRect.height,
+        },
+        { width: 1920, height: 1280 },
+        1000000,
+        30
+      );
+
+      const url = URL.createObjectURL(processedBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `recording-${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+      clearBlobUrl();
+
+      // Clear the stored capture rectangle
+      delete window.captureRect;
+    } catch (error) {
+      notify("Error processing video", "error");
+    }
+  };
+
+  return capture;
+};
+
+const checkBlobUrl = (getMediaBlobUrl, timeout = 30000, intervalTime = 500) =>
+  new Promise((resolve, reject) => {
+    const start = Date.now();
+
+    const interval = setInterval(() => {
+      const currentUrl = getMediaBlobUrl();
+
+      if (currentUrl) {
+        clearInterval(interval);
+        resolve(currentUrl);
+      } else if (Date.now() - start > timeout) {
+        clearInterval(interval);
+        reject(new Error("Timed out waiting for media blob URL"));
+      }
+    }, intervalTime);
   });
 
-  return destination.stream;
-}
-let mediaRecorder;
-let recordedChunks = [];
+// Keep the processVideoWithFFmpeg function as it is
+export const processVideoWithFFmpeg = async (
+  blob,
+  dimensions,
+  targetDimensions,
+  token,
+  projectId
+) => {
+  try {
+    const { top, left, width, height } = dimensions;
+    const { width: targetWidth, height: targetHeight } = targetDimensions;
+    const formData = new FormData();
+    formData.append("video", blob);
+    formData.append("top", top);
+    formData.append("left", left);
+    formData.append("width", width);
+    formData.append("height", height);
+    formData.append("targetWidth", targetWidth);
+    formData.append("targetHeight", targetHeight);
+    formData.append("projectId", projectId);
+    const response = await fetch(
+      `${import.meta.env.VITE_SERVER_URL}/api/export/process-video`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
 
-export async function startRecording() {
-  const videoStream = await captureDivAsVideo();
-  const audioStream = await captureInternalAudio();
+    if (!response.ok) throw new Error("Processing failed");
 
-  if (!videoStream || !audioStream) {
-    console.error("Failed to capture video or audio");
-    return;
+    const processedBlob = await response.blob();
+    return processedBlob;
+  } catch (err) {
+    // console.error("FFmpeg processing error:", err);
+    // throw err;
   }
-
-  // Merge video and audio streams
-  const combinedStream = new MediaStream([
-    ...videoStream.getVideoTracks(),
-    ...audioStream.getAudioTracks(),
-  ]);
-
-  mediaRecorder = new MediaRecorder(combinedStream, {
-    mimeType: "video/webm; codecs=vp9",
-  });
-
-  mediaRecorder.ondataavailable = (event) => recordedChunks.push(event.data);
-  mediaRecorder.onstop = saveRecording;
-
-  mediaRecorder.start();
-  console.log("Recording started...");
-
-  setTimeout(() => mediaRecorder.stop(), 10000); // Stop after 10 sec
-}
-
-async function saveRecording() {
-  const blob = new Blob(recordedChunks, { type: "video/webm" });
-  const buffer = Buffer.from(await blob.arrayBuffer());
-  require("fs").writeFileSync("recorded.webm", buffer);
-  console.log("Recording saved! Now converting...");
-
-  convertVideo(480);
-  convertVideo(720);
-}
+};

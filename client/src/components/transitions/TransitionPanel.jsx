@@ -20,7 +20,6 @@ const TransitionPanel = () => {
   );
 
   const handleTransition = (e) => {
-    console.log("YOU CLICKED");
 
     const transition = e.target.getAttribute("data-alt");
     setTransition(transition);
@@ -65,7 +64,6 @@ const TransitionPanel = () => {
       sourceAndTiming.find((item) => item.id === selectedElement.id)
     );
 
-    console.log(">>transition", currentSourceAndTiming);
 
     setTransition(previousSourceAndTiming?.transitionType);
   }, [selectedElement, currentSourceAndTiming]);

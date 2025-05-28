@@ -2,18 +2,48 @@ const { execFile } = require("child_process");
 const pool = require("../model/config");
 const { extractAudio } = require("../utils/downloadFile");
 const fs = require("fs");
+const path = require("path");
+const CryptoJS = require("crypto-js");
+const {
+  decryptData,
+  encryptData,
+  sendEncryptedResponse,
+} = require("../utils/crypto");
 
+module.exports.checkProject = async (req, res) => {
+  try {
+    const { projectId, email } = req.body;
+    console.log("RECEIVEEDD", req.body);
+
+    const getQuery = `SELECT * FROM projects where project_id = $1 AND email = $2`;
+    const result = await pool.query(getQuery, [projectId, email]);
+    console.log("ROWS-->", result.rows.length, result.rowCount);
+
+    if (result.rows.length > 0) {
+      return res.status(200).json({ projectExists: true });
+    } else {
+      return res.status(200).json({ projectExists: false });
+    }
+  } catch (err) {
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
 module.exports.generateSubtitles = async (req, res) => {
   try {
-    const audioPath = req.body.audioPath;
+    console.log("ENTERED FOR GEN SUB");
 
-    if (!fs.existsSync(path.join(__dirname, audioPath))) {
+    const audioPath = req.body.audioPath;
+    console.log(audioPath);
+    const audioFilePath = path.join(__dirname, ".." + audioPath);
+    if (!fs.existsSync(audioFilePath)) {
+      console.log(path.join(__dirname, ".." + audioPath));
+
       return res.status(404).json({ error: "Audio file not found" });
     }
 
     execFile(
       "python",
-      ["../script/vosk_service.py", "." + audioPath],
+      ["../server/script/vosk_service.py", "." + audioPath],
       (err, stdout, stderr) => {
         if (err) {
           console.error("Python error:", err);
@@ -26,8 +56,11 @@ module.exports.generateSubtitles = async (req, res) => {
           const transcript = JSON.parse(lastLine);
           console.log("TRANSCRIPT IS ", transcript);
           //cleanup
-          fs.unlinkSync(path.join(__dirname, audioPath));
+          console.log("AUDIO FILE PATH", audioFilePath);
 
+          if (audioFilePath && fs.existsSync(audioFilePath)) {
+            fs.unlinkSync(audioFilePath);
+          }
           return res.json({ success: true, subtitles: transcript });
         } catch (parseErr) {
           console.error("Parsing error:", parseErr, "Output:", stdout);
@@ -48,15 +81,17 @@ module.exports.uploadVideo = async (req, res) => {
     }
 
     const videoPath = req.file.path;
-    const audioPath = path.join(__dirname, "temp", `${Date.now()}.wav`);
+    const audioPath = path.join(__dirname, "../temp", `${Date.now()}.wav`);
     console.log("Sending audio URL:", audioPath);
     // Make sure temp directory exists
-    if (!fs.existsSync(path.join(__dirname, "temp"))) {
-      fs.mkdirSync(path.join(__dirname, "temp"));
+    if (!fs.existsSync(path.join(__dirname, "../temp"))) {
+      fs.mkdirSync(path.join(__dirname, "../temp"));
+      console.log(path.join(__dirname, "../temp"));
     }
 
     // Extract audio from video
     await extractAudio(videoPath, audioPath);
+    console.log("EXTRACTED AUDIO");
 
     // Send the extracted audio file back to the client for browser-based speech recognition
     res.json({
@@ -65,7 +100,7 @@ module.exports.uploadVideo = async (req, res) => {
     });
 
     // Cleanup will happen later through a separate endpoint
-    cleanup(audioPath, videoPath);
+    cleanup(videoPath);
   } catch (error) {
     console.error("Error processing video:", error);
     res.status(500).json({ error: "Error processing video" });
@@ -74,6 +109,7 @@ module.exports.uploadVideo = async (req, res) => {
 
 module.exports.saveData = async (req, res) => {
   try {
+    const decrypted = decryptData(req.body.encryptedData);
     let {
       source_and_timing,
       effects_and_timing,
@@ -81,7 +117,7 @@ module.exports.saveData = async (req, res) => {
       project_title,
       elements,
       positions,
-    } = req.body;
+    } = decrypted;
 
     console.log(
       "RECEIVED",
@@ -189,9 +225,7 @@ module.exports.getParticularProject = async (req, res) => {
         );
       }
       project.source_and_timing = source_and_timing;
-      console.log("THIS IS THE PROJECT", project);
-
-      return res.status(200).json(project);
+      sendEncryptedResponse(res, { data: project });
     } else {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -233,7 +267,7 @@ module.exports.getAllProjects = async (req, res) => {
     ]);
     console.log("RESULT", result.rows, req.user.emailAddresses[0].emailAddress);
     if (result.rows.length > 0) {
-      return res.json(result.rows);
+      sendEncryptedResponse(res, { result: result.rows });
     } else {
       return res.status(404).json({ error: "No projects found" });
     }
@@ -260,16 +294,53 @@ module.exports.feedback = async (req, res) => {
     return res.status(500).json({ error: "Failed to save feedback" });
   }
 };
+module.exports.checkAdmin = async (req, res) => {
+  try {
+    const email = req.user.emailAddresses[0].emailAddress;
+    const query = `SELECT * FROM users where email = $1`;
 
+    const result = await pool.query(query, [email]);
+    
+    return res.status(200).json({ isAdmin: result.rows[0].is_admin });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" + error });
+  }
+};
+module.exports.getNumUsers = async (req, res) => {
+  try {
+    const query = `SELECT COUNT(*) FROM users AS count`;
+
+    const result = await pool.query(query, []);    
+    return res.status(200).json({ numUsers: result.rows[0].count });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" + error });
+  }
+};
+module.exports.getNumExports = async (req, res) => {
+  try {
+    const query = `SELECT SUM(num_exports) AS total FROM users`;
+
+    const result = await pool.query(query, []);
+    console.log("RESULT", result);
+
+    return res.status(200).json({ numExports: result.rows[0].total });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" + error });
+  }
+};
+module.exports.getFeedbacks = async (req, res) => {
+  try {
+    const query = `SELECT * FROM FEEDBACK ORDER BY created_at DESC LIMIT 10`;
+
+    const result = await pool.query(query,[]);
+    return res.status(200).json({ feedbacks: result.rows });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" + error });
+  }
+};
 // Route to clean up files after processing
-const cleanup = (audioPath, videoPath) => {
-  if (audioPath && fs.existsSync(audioPath)) {
-    fs.unlinkSync(audioPath);
+const cleanup = (filePath) => {
+  if (filePath && fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
   }
-
-  if (videoPath && fs.existsSync(videoPath)) {
-    fs.unlinkSync(videoPath);
-  }
-
-  res.json({ success: true });
 };

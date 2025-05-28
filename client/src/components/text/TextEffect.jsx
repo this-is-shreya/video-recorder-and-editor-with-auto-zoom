@@ -29,7 +29,6 @@ const TextEffect = () => {
   ) {
     return;
   }
-  console.log(">>currentEFFFFECT", currentEffectsAndTiming);
 
   const source = currentEffectsAndTiming[0].source;
   const [text, setText] = useState(currentEffectsAndTiming[0].text);
@@ -51,7 +50,6 @@ const TextEffect = () => {
     setFontSize(currentEffectsAndTiming[0].fontSize);
     setTextColor(currentEffectsAndTiming[0].textColor);
     setBackgroundColor(currentEffectsAndTiming[0].backgroundColor);
-    console.log(">>text is ", text);
   }, [currentEffectsAndTiming[0]]);
 
   return (
@@ -64,6 +62,7 @@ const TextEffect = () => {
           fontSize={fontSize}
           color={textColor}
           bgColor={backgroundColor}
+          trackNum={trackNum}
         />
       )}
       {source === "text-title-2" && (
@@ -73,6 +72,7 @@ const TextEffect = () => {
           fontSize={fontSize}
           color={textColor}
           bgColor={backgroundColor}
+          trackNum={trackNum}
         />
       )}
       {source === "text-title-3" && (
@@ -82,6 +82,7 @@ const TextEffect = () => {
           fontSize={fontSize}
           color={textColor}
           bgColor={backgroundColor}
+          trackNum={trackNum}
         />
       )}
       {source === "text-title-4" && (
@@ -91,6 +92,7 @@ const TextEffect = () => {
           fontSize={fontSize}
           color={textColor}
           bgColor={backgroundColor}
+          trackNum={trackNum}
         />
       )}
       {source === "text-title-5" && (
@@ -100,6 +102,7 @@ const TextEffect = () => {
           fontSize={fontSize}
           color={textColor}
           bgColor={backgroundColor}
+          trackNum={trackNum}
         />
       )}
       {source === "text-title-6" && (
@@ -109,6 +112,7 @@ const TextEffect = () => {
           fontSize={fontSize}
           color={textColor}
           bgColor={backgroundColor}
+          trackNum={trackNum}
         />
       )}
       {source === "text-title-7" && (
@@ -118,6 +122,7 @@ const TextEffect = () => {
           fontSize={fontSize}
           color={textColor}
           bgColor={backgroundColor}
+          trackNum={trackNum}
         />
       )}
       {/* Lower thirds */}

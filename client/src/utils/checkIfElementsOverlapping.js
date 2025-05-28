@@ -63,8 +63,6 @@ export const checkIfElementsOverlapping = (newRect) => {
     if ((newRect.left < elRect.left && newRect.right < elRect.right)
       || (newRect.left > elRect.left && newRect.right < elRect.right) 
     || (newRect.left < elRect.left && newRect.right > elRect.right)) {
-      console.log("Overlap detected!");
-      console.log("New Rect:", newRect, "Other Rect:", elRect);
       return true; // Overlap found
     }
   }
@@ -120,7 +118,6 @@ export const checkIfElementsOverlappingOnStop = (e, duration) => {
 
   // Return false if no other elements are present
   if (allElements.length <= 1) {
-    console.log("No other elements present:", allElements);
     return false;
   }
 
@@ -135,16 +132,8 @@ export const checkIfElementsOverlappingOnStop = (e, duration) => {
     if (el !== e.target) {
       const elRect = el.getBoundingClientRect();
 
-      console.log(
-        "Checking overlap with:",
-        elRect,
-        "Dragged Element:",
-        newRect
-      );
-
       // Check for overlap using helper function
       if (isOverlapping(newRect, elRect)) {
-        console.log("Overlap detected!");
         return true; // Overlap found
       }
     }

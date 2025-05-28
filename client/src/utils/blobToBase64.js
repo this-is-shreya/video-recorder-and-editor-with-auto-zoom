@@ -1,3 +1,5 @@
+import { notify } from "./toast";
+
 export async function convertBlobToBase64(jsonArray) {
   try {
     const updatedArray = await Promise.all(
@@ -16,7 +18,6 @@ export async function convertBlobToBase64(jsonArray) {
           reader.readAsDataURL(blob);
         });
         const sizeInBytes = new TextEncoder().encode(base64).length;
-        console.log("size in mb ", sizeInBytes / (1024 * 1024)); // Convert to MB
 
         return {
           ...item,
@@ -24,12 +25,12 @@ export async function convertBlobToBase64(jsonArray) {
         };
       })
     );
-    console.log("updatedArray", updatedArray);
 
     return updatedArray;
   } catch (error) {
-    console.error("Error converting blob to base64:", error);
-    throw error;
+    notify("Something went wrong", "error")
+    // console.error("Error converting blob to base64:", error);
+    // throw error;
   }
 }
 

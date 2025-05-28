@@ -19,6 +19,8 @@ import { Tooltip } from "react-tooltip";
 import { notify } from "../../utils/toast";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { useCaptureVideoPlayer } from "../../utils/export";
+import { fetchEncryptedData, isAuthorized } from "../../utils/authorization";
 
 const useKeyPress = (key, callback, withCtrl = false) => {
   const callbackRef = useRef(callback);
@@ -80,11 +82,16 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     dataArray,
     setDataArray,
     subtitleArray,
-    setProjectTitle
+    setProjectTitle,
+    startRecording,
+    stopRecording,
+    mediaBlobUrl,
+    setIsExportPreview,
   } = useContext(AppContext);
 
   const { getToken } = useAuth();
-  const { isLoaded, isSignedIn, user } = useUser();
+
+  const { user } = useUser();
 
   const navigate = useNavigate();
   const intervalRef = useRef(null);
@@ -156,12 +163,11 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
       ) {
         const roundedTime = Math.floor(seekerPosition / pixels[zoomTimeline]);
         const newId = Date.now();
-        console.log("SPLIT AT ", roundedTime);
 
         // Second half (new split segment)
         const newSource = {
           ...source,
-          id: newId,
+          id: String(newId),
           start: roundedTime,
           newStart: roundedTime,
           speedStart: roundedTime,
@@ -176,11 +182,12 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           startsFrom: roundedTime - source.newStart + source.startsFrom,
           trackNum: source.trackNum,
         };
+console.log("NEW SOURCE", newSource);
 
         // First half
         const updatedSource = {
           ...source,
-          id: Number(source.id),
+          id: String(source.id),
           speedEnd: roundedTime,
           newEnd: roundedTime,
           end: roundedTime,
@@ -189,16 +196,15 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           zoomDuration: null,
           zoomLevel: 1,
         };
-        console.log(">>new sources are ", newSource, updatedSource);
 
         newSources.push(newSource, updatedSource);
         setSelectedElement({
-          id: newSource.id,
+          id: String(newSource.id),
           mediaType: newSource.mediaType,
         });
         setElements((prev) => [
           ...prev,
-          { id: newId, trackNum: source.trackNum },
+          { id: String(newId), trackNum: source.trackNum },
         ]);
       } else {
         newSources.push(source);
@@ -216,21 +222,21 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     );
     if (isSource) {
       const updatedSourceAndTiming = sourceAndTiming.filter((item) => {
-        console.log("item", item, selectedElement);
 
         return item.id !== selectedElement.id;
       });
-      console.log("updated sandt", updatedSourceAndTiming);
       setSourceAndTiming(() => [...updatedSourceAndTiming]);
     } else {
       const updatedEffectsAndTiming = effectsAndTiming.filter((item) => {
-        console.log("item", item, selectedElement);
 
         return item.id !== selectedElement.id;
       });
-      console.log("updated sandt", updatedEffectsAndTiming);
       setEffectsAndTiming(() => [...updatedEffectsAndTiming]);
     }
+    // const { [selectedElement.id]: _, ..._positions } = positions;
+    // setPositions(_positions);
+    // const _elements = elements.filter((item)=>item.id !== selectedElement.id);
+    // setElements(_elements);
     setIsDeleteMedia(true);
   };
   const getHeightByAspectRatio = (aspectRatio, width) => {
@@ -248,35 +254,26 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     }
   };
   const handleExport = async () => {
-    await handleSave(sourceAndTiming, effectsAndTiming, elements, positions);
-    // const startVideo = sourceAndTiming.find((item)=>item.newStart === 0 && item.mediaType === mediaType.video)
-    // if(!startVideo || startVideo.length === 0){
-    //   notify("no video at start");
-    //   return;
-    // }
-    const id = window.location.pathname.split("/")[1];
-    const exportUrl = `/${id}/export?aspectRatio=${aspectRatio}&rate=${bitrate}&fps=${fps}&res=${resolution}`;
-    const newWindow = window.open(exportUrl, "_blank");
-    newWindow.addEventListener("load", () => {
-      newWindow.postMessage(
-        {
-          type: "export",
-          subtitleArray, //not needed ig
-          maxTime,
-        },
-        "*"
-      );
-    });
+    const startVideo = sourceAndTiming.find(
+      (item) => item.newStart === 0 && item.mediaType === mediaType.video
+    );
+    if (!startVideo || startVideo.length === 0) {
+      notify("Cannot export as no media present at 00:00", "warning");
+      return;
+    }
+    setIsExportPreview(true);
   };
-  const handleFeedback = () => {
+  const handleFeedback = async() => {
     if (feedback.length === 0 || feedback.replaceAll(" ").length === 0) {
       return;
     }
+    const token = await getToken();
     setIsFeedbackButtonDisabled(true);
     fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/feedback`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({ feedback: feedback }),
     })
@@ -286,10 +283,14 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
             setIsFeedbackButtonDisabled(false);
             notify("Feedback sent successfully!", "success");
           }, 2000);
+        } else {
+          notify("Something went wrong", "error");
+          setIsFeedbackButtonDisabled(false);
         }
       })
       .catch((err) => {
         notify("Error sending feedback. Please try again later.", "error");
+        setIsFeedbackButtonDisabled(false);
       });
   };
 
@@ -311,8 +312,6 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     if (index >= dataArray.length - 1) return;
     const newIndex = index + 1;
     const nextState = dataArray[newIndex];
-    console.log("newindex is ", newIndex, "data array is ", dataArray);
-    console.log("next state is ", nextState);
 
     if (nextState) {
       setSourceAndTiming(nextState.sourceAndTiming);
@@ -336,72 +335,90 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
 
   useEffect(() => {
     setTop(getHeightByAspectRatio(aspectRatio));
-    console.log("top is ", top);
   }, [aspectRatio]);
   useEffect(() => {
-    notify("Loading project data. Please wait.", "info");
-    const id = window.location.pathname.split("/")[1];
-    const fetchToken = async () => {
-      const token = await getToken();
-      if (!token) {
-        navigate("/auth");
-      } else {
-        
-        fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/project/${id}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-          .then(async (res) => {
-            if (res.status === 401) {
-              navigate("/auth");
-            }
-            const data = await res.json();
-            setProjectTitle(data.project_title);
-            if (
-              !data ||
-              (!data.source_and_timing &&
-                !data.effects_and_timing &&
-                !data.positions &&
-                !data.elements)
-            ) {
-              return;
-            }
-            const updatedSourceAndTiming = await convertBase64ToBlob(
-              data.source_and_timing
-            );
-            setSourceAndTiming(
-              updatedSourceAndTiming ? updatedSourceAndTiming : []
-            );
-            setEffectsAndTiming(
-              data.effects_and_timing ? data.effects_and_timing : []
-            );
-            setPositions(data.positions ? data.positions : {});
-            setElements(data.elements ? data.elements : []);
-            console.log(
-              "inside timeline",
-              sourceAndTiming,
-              effectsAndTiming,
-              elements,
-              positions
-            );
-            setFetchFromTimeline(true);
-          })
-          .catch((err) => {
-            notify("Error fetching project data", "error");
-          });
-      }
-    };
-    fetchToken();
+    if (dataArray && dataArray.length > 0) {
+      return;
+    }
+    if (!window.location.href.includes("new")) {
+      const id = window.location.pathname.split("/")[1];
+      const fetchToken = async () => {
+        const email = user ? user.emailAddresses[0].emailAddress : null;
+
+        const isUserAuthorized = await isAuthorized(id, email);
+
+        if (!isUserAuthorized) {
+          navigate("/auth");
+          return;
+        }
+        const token = await getToken();
+        if (!token) {
+          navigate("/auth");
+        } else {
+          notify("Loading project data. Please wait.", "info");
+          const result = await fetchEncryptedData(
+            `${import.meta.env.VITE_SERVER_URL}/api/user/project/${id}`,
+            token
+          );
+
+          if (result.status === 401) {
+            navigate("/auth");
+          }
+          const { project_title, source_and_timing, effects_and_timing } =
+            result.data.data;
+
+          const _elements = result.data.data.elements;
+          const _positions = result.data.data.positions;
+
+          if (
+            !result ||
+            (!source_and_timing &&
+              !effects_and_timing &&
+              !_positions &&
+              !_elements)
+          ) {
+            return;
+          }
+          setProjectTitle(project_title);
+          const updatedSourceAndTiming = await convertBase64ToBlob(
+            source_and_timing
+          );
+          setSourceAndTiming(
+            updatedSourceAndTiming ? updatedSourceAndTiming : []
+          );
+          setEffectsAndTiming(effects_and_timing ? effects_and_timing : []);
+          setPositions(_positions ? _positions : {});
+          setElements(_elements ? _elements : []);
+          setFetchFromTimeline(true);
+          setDataArray([
+            {
+              sourceAndTiming: updatedSourceAndTiming
+                ? updatedSourceAndTiming
+                : [],
+              effectsAndTiming: effects_and_timing ? effects_and_timing : [],
+              elements: elements ? elements : [],
+              positions: positions ? positions : {},
+            },
+          ]);
+          // setProjectTitle(result.project_title)
+        }
+      };
+      fetchToken();
+    }
   }, []);
   // Save state to history when source/effects change
   useEffect(() => {
-    const newEntry = JSON.stringify({ sourceAndTiming, effectsAndTiming });
+    const newEntry = JSON.stringify({
+      sourceAndTiming,
+      effectsAndTiming,
+      elements,
+      positions,
+    });
+
     const lastEntry = dataArray[index]
       ? JSON.stringify(dataArray[index])
       : null;
+    // console.log("undo-redo1", newEntry, lastEntry, newEntry === lastEntry);
 
     if (newEntry === lastEntry) return;
 
@@ -419,7 +436,8 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
 
     setDataArray(updatedDataArray);
     setIndex(updatedDataArray.length - 1);
-  }, [sourceAndTiming, effectsAndTiming]);
+    // console.log("undo-redo",updatedDataArray);
+  }, [sourceAndTiming, effectsAndTiming, elements, positions]);
 
   useKeyPress("z", handleUndo, true);
   useKeyPress("y", handleRedo, true);
@@ -452,7 +470,13 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
       <div className="project-actions">
         <button
           className="button-purple"
-          style={{ minWidth: "100px", maxWidth: "fit-content", height: "30px" }}
+          style={{
+            minWidth: "100px",
+            maxWidth: "fit-content",
+            height: "30px",
+            backgroundColor: "transparent",
+            color: "#ddd",
+          }}
           onClick={() => setShowFeedbackDialog(true)}
         >
           Share feedback
@@ -469,7 +493,7 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
         <button
           className="button-purple"
           style={{ minWidth: "60px", maxWidth: "fit-content", height: "30px" }}
-          onClick={() => setShowExportDialog(true)}
+          onClick={() => handleExport()}
         >
           Export
         </button>
@@ -495,6 +519,8 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
             data-tooltip-content="Press 'S' to split"
             style={{
               width: "40px",
+              backgroundColor: "transparent",
+              color: "#ddd",
             }}
             onClick={handleSplit}
           >
@@ -506,6 +532,8 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
             data-tooltip-content="Press 'Delete' key to delete"
             style={{
               width: "40px",
+              backgroundColor: "transparent",
+              color: "#ddd",
             }}
             onClick={handleDeleteTrackMedia}
           >
@@ -515,7 +543,11 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
             className="button-purple tooltip-timeline"
             data-tooltip-id="tooltip-timeline"
             data-tooltip-content="Refresh timeline"
-            style={{ width: "40px" }}
+            style={{
+              width: "40px",
+              backgroundColor: "transparent",
+              color: "#ddd",
+            }}
             onClick={() => setIsSplit(true)}
           >
             <LuRefreshCw size={15} />
@@ -531,16 +563,6 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
             }}
           />
           <label style={{ color: "#fff" }}>{zoomTimeline}</label>
-          <select
-            onChange={(e) => {
-              setAspectRatio(e.target.value);
-            }}
-          >
-            <option value="16/9">16:9</option>
-            <option value="9/16">9:16</option>
-            <option value="4/3">4:3</option>
-            <option value="3/4">3:4</option>
-          </select>
         </div>
 
         <div
@@ -551,6 +573,51 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           <Seeker />
 
           <div className="all-tracks">
+            <Track
+              isDeleteMedia={isDeleteMedia}
+              setIsDeleteMedia={setIsDeleteMedia}
+              trackNum={5}
+              elements={elements}
+              setElements={setElements}
+              positions={positions}
+              setPositions={setPositions}
+              undo={undo}
+              redo={redo}
+              setUndo={setUndo}
+              setRedo={setRedo}
+              fetchFromTimeline={fetchFromTimeline}
+              setFetchFromTimeline={setFetchFromTimeline}
+            />
+            <Track
+              isDeleteMedia={isDeleteMedia}
+              setIsDeleteMedia={setIsDeleteMedia}
+              trackNum={4}
+              elements={elements}
+              setElements={setElements}
+              positions={positions}
+              setPositions={setPositions}
+              undo={undo}
+              redo={redo}
+              setUndo={setUndo}
+              setRedo={setRedo}
+              fetchFromTimeline={fetchFromTimeline}
+              setFetchFromTimeline={setFetchFromTimeline}
+            />
+            <Track
+              isDeleteMedia={isDeleteMedia}
+              setIsDeleteMedia={setIsDeleteMedia}
+              trackNum={3}
+              elements={elements}
+              setElements={setElements}
+              positions={positions}
+              setPositions={setPositions}
+              undo={undo}
+              redo={redo}
+              setUndo={setUndo}
+              setRedo={setRedo}
+              fetchFromTimeline={fetchFromTimeline}
+              setFetchFromTimeline={setFetchFromTimeline}
+            />
             <Track
               isDeleteMedia={isDeleteMedia}
               setIsDeleteMedia={setIsDeleteMedia}
@@ -623,102 +690,6 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
             <button
               className="exit-button"
               onClick={() => setShowFeedbackDialog(false)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 162 162"
-                className="svgIconCross"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeWidth="17"
-                  stroke="black"
-                  d="M9.01074 8.98926L153.021 153"
-                ></path>
-                <path
-                  strokeLinecap="round"
-                  strokeWidth="17"
-                  stroke="black"
-                  d="M9.01074 153L153.021 8.98926"
-                ></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-      {/* export dialog box */}
-      {showExportDialog && (
-        <div className="cookies-overlay">
-          <div className="cookies-card">
-            <p className="cookie-heading">Export options</p>
-
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  width: "300px",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <label style={{ width: "100px" }}>FPS</label>
-                  <div style={{ flex: 1 }}>
-                    <select
-                      style={{ width: "100%" }}
-                      onChange={(e) => setFps(e.target.value)}
-                    >
-                      <option value="30">30 (Recommended)</option>
-                      <option value="40">40</option>
-                      <option value="50">50</option>
-                      <option value="60">60</option>
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <label style={{ width: "100px" }}>Bitrate</label>
-                  <div style={{ flex: 1 }}>
-                    <select
-                      style={{ width: "100%" }}
-                      onChange={(e) => setBitrate(e.target.value)}
-                    >
-                      <option value="5000000">5Mbps (Recommended)</option>
-                      <option value="10000000">10Mbps</option>
-                      <option value="15000000">15Mbps</option>
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <label style={{ width: "100px" }}>Resolution</label>
-                  <div style={{ flex: 1 }}>
-                    <select
-                      style={{ width: "100%" }}
-                      onChange={(e) => setResolution(e.target.value)}
-                    >
-                      <option value="720">720p</option>
-                      <option value="1080">1080p</option>
-                      <option value="2160">4K</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="button-wrapper">
-              <button
-                className="accept cookie-button"
-                onClick={() => handleExport()}
-                disabled={isFeedbackButtonDisabled}
-              >
-                Export
-              </button>
-            </div>
-            <button
-              className="exit-button"
-              onClick={() => setShowExportDialog(false)}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

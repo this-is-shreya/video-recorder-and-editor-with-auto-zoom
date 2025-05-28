@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import styles from "./styles/TitleCard7.module.css"
 
 
-export default function TitleCard7({ text }) {
+export default function TitleCard7({ text, trackNum }) {
   const [channelName, tagline] = text.split(" ")
   const [isPlaying, setIsPlaying] = useState(false)
 
@@ -20,7 +20,7 @@ export default function TitleCard7({ text }) {
   }, [])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{zIndex: trackNum}}>
       <div className={`${styles.zoomContainer} ${isPlaying ? styles.play : ""}`}>
         <div className={styles.circle}></div>
         <div className={styles.circle}></div>

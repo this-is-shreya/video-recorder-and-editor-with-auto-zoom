@@ -1,121 +1,176 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { VscNewFolder } from "react-icons/vsc";
-import { FaFolderOpen } from "react-icons/fa";
-import { useUser, useAuth, SignedIn } from "@clerk/clerk-react";
-import { notify } from "./utils/toast";
-import Header from "./components/header/Header";
+import styles from "./LandingPage.module.css";
+import { RiCameraLensAiLine } from "react-icons/ri";
+import { FaClapperboard, FaQuoteLeft, FaStar } from "react-icons/fa6";
+import { BsStars } from "react-icons/bs";
 
 const LandingPage = () => {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { getToken } = useAuth();
   const navigate = useNavigate();
-  const [token, setToken] = useState(null);
-
-  useEffect(() => {
-    const fetchToken = async () => {
-      if (isLoaded && isSignedIn) {
-        const token = await getToken();
-        if (!token) {
-          navigate("/auth");
-        } else {
-          setToken(token);
-        }
-      }
-    };
-    fetchToken();
-  }, []);
-
-  if (!isLoaded) return <h1 style={{ textAlign: "center" }}>Loading...</h1>;
-  if (!isSignedIn)
-    return (
-      <h1 style={{ textAlign: "center" }}>
-        Please sign in to access the dashboard
-      </h1>
-    );
-
-  const handleNew = async () => {
-    if (!token) {
-      navigate("/auth");
-    }
-    const timestamp = Date.now();
-    const projectData = {
-      source_and_timing: null,
-      effects_and_timing: null,
-      elements: null,
-      positions: null,
-      project_id: timestamp,
-      project_title: "Project Title",
-    };
-    notify("Creating new project...", "info");
-
-    fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/save-data`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(projectData),
-    })
-      .then((res) => {
-        console.log("TOKEN ", token);
-
-        if (res.status === 401) {
-          navigate("/auth");
-        }
-        if (res.ok) {
-          notify("Project created successfully!", "success");
-          navigate(`/${timestamp}`);
-        } else {
-          notify("Error creating new project", "error");
-        }
-      })
-      .catch((error) => {
-        console.log("TOKEN ", token);
-
-        notify("Error creating new project", "error");
-        console.log(error);
-      });
-  };
-
+  const featureSet = [
+    "Record and edit in one place",
+    "Smooth transitions",
+    "Auto generate subtitles",
+    "Zoom into a specific point",
+    "Titlecards, lowerthirds and more!",
+  ];
   return (
-    <>
-      <Header />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginTop: "50px",
-          gap: "20px",
-        }}
-      >
-        <button
-          className="project-card"
+    <div className={styles["container"]}>
+      <div className={styles["navbar"]}>
+        <div
           style={{
+            color: "white",
             display: "flex",
+            flexDirection: "row",
             justifyContent: "center",
             alignItems: "center",
+            gap: "10px",
           }}
-          onClick={handleNew}
         >
-          <VscNewFolder size={35} />
-          <label style={{ fontSize: "25px" }}>New</label>
-        </button>
-        <button
-          className="project-card"
+          <RiCameraLensAiLine color="#EB1AB4" size={"40"} />
+          <h3 style={{ verticalAlign: "middle" }}>RookieClip</h3>
+        </div>
+        <a
+          href="https://ko-fi.com/rookieclip"
+          target="_blank"
+          className="button-purple"
           style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
+            width: "fit-content",
+            height: "30px",
+            fontSize: "15px",
+            padding: "5px",
+            marginTop: "10px",
+            marginRight: "5px",
+            backgroundColor: "white",
+            textDecoration: "none",
           }}
-          onClick={() => navigate("/open")}
         >
-          <FaFolderOpen size={35} />
-          <label style={{ fontSize: "25px" }}>Open</label>{" "}
-        </button>
+          Support me
+        </a>
       </div>
-    </>
+      <div className={styles["hero-section"]}>
+        <div>
+          <h1 style={{ color: "white", fontSize: "40px" }}>EDIT LIKE A PRO</h1>
+          <hr />
+          <p style={{ color: "#ddd", marginTop: "10px", fontSize: "20px" }}>
+            Screen recorder and video editor packed with powerful features like
+            drag-and-drop timelines, zoom effects, text overlays, and one-click
+            transitions.
+          </p>
+          <button
+            className="button-purple"
+            style={{ marginTop: "10px" }}
+            onClick={() => navigate("/auth")}
+          >
+            Get started
+          </button>
+          <div className={styles["user-rating"]}>
+            {/* <div className={styles["avatars"]}>
+              <img
+                className={styles["avatar"]}
+                src="/assets/aesthetic.png"
+              ></img>
+              <img
+                className={styles["avatar"]}
+                src="/assets/aesthetic.png"
+              ></img>
+              <img
+                className={styles["avatar"]}
+                src="/assets/aesthetic.png"
+              ></img>
+            </div> */}
+            <div className={styles["rating"]}>
+              <div className={styles["stars"]}>
+                <FaStar color="#fed187" size={"25"} />
+                <FaStar color="#fed187" size={"25"} />
+                <FaStar color="#fed187" size={"25"} />
+                <FaStar color="#fed187" size={"25"} />
+                <FaStar color="#fed187" size={"25"} />
+              </div>
+              <p style={{ color: "#ddd" }}>
+                10+ creators record using RookieClip
+              </p>
+            </div>
+            <label style={{ backgroundColor: "#f5e2bf", fontSize: "15px", padding:"5px", width:"fit-content", borderRadius:"5px" }}>
+              <BsStars />Last updated on 26 May, 2025
+            </label>
+          </div>
+        </div>
+        <div className={styles["video-demo"]}>
+          <video src=""></video>
+        </div>
+      </div>
+      <h1 style={{ marginTop: "10%", textAlign: "center" }}>
+        Create beautiful videos with just a click!
+      </h1>
+      <div className={styles["feature-section"]}>
+        <div className={styles["features"]}>
+          {featureSet.map((val, index) => (
+            <div
+              key={index}
+              className={styles["feature"]}
+              data-alt={`${index}`}
+            >
+              <h3>{val}</h3>
+            </div>
+          ))}
+        </div>
+        <div className={styles["video-demo"]}>
+          <video src=""></video>
+        </div>
+      </div>
+      <div className={styles["testimonials"]}>
+        <div className={styles["testimonial"]}>
+          <FaQuoteLeft color="EB1AB4" size={"30"} />
+          <p>
+            The zoom effects are spot-on, the cursor tracking is super smooth
+            and the editing tools are easy to use. It's exactly what I needed!
+          </p>
+          <div className={styles["user-details"]}>
+            <img className={styles["avatar"]} src="/assets/aesthetic.png"></img>
+            <div>
+              <h4>Name</h4>
+              <p>@user</p>
+            </div>
+          </div>
+        </div>
+        <div className={styles["testimonial"]}>
+          <FaQuoteLeft color="EB1AB4" size={"30"} />
+          <p>
+            The zoom effects are spot-on, the cursor tracking is super smooth
+            and the editing tools are easy to use. It's exactly what I needed!
+          </p>
+          <div className={styles["user-details"]}>
+            <img className={styles["avatar"]} src="/assets/aesthetic.png"></img>
+            <div>
+              <h4>Name</h4>
+              <p>@user</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h1 style={{ marginTop: "10%", textAlign: "center" }}>
+        What are you waiting for?
+      </h1>
+      <button
+        className="button-purple"
+        style={{
+          margin: "0 auto",
+          marginTop: "20px",
+          width: "100px",
+          height: "40px",
+          fontSize: "15px",
+        }}
+        onClick={() => navigate("/auth")}
+      >
+        Get started
+      </button>
+      <div className={styles["footer"]}>
+        <p style={{ color: "#ddd" }}>
+          Copyright © 2025 RookieClip | All Rights Reserved
+        </p>
+      </div>
+    </div>
   );
 };
 

@@ -11,12 +11,12 @@ const AllOtherText = ({ type, text, trackNum }) => {
         <div className={styles["cartoon-text"]}>{text}</div>
       )}
       {type === "professional" && (
-        <TypingText text={text}/>
+        <TypingText text={text} trackNum={trackNum}/>
       )}
       {type === "aesthetic" && (
-        <GlowingText text={text} />
+        <GlowingText text={text} trackNum={trackNum}/>
       )}
-      {type === "glitch" && <BubbleText text={text} />}
+      {type === "glitch" && <BubbleText text={text} trackNum={trackNum}/>}
     </div>
   );
 };

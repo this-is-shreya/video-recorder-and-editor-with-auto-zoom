@@ -8,6 +8,7 @@ const TitleCard3 = ({
   fontSize = "14",
   color = "black",
   bgColor = "white",
+  trackNum
 }) => {
   const textRef = useRef(null);
 
@@ -29,6 +30,7 @@ const TitleCard3 = ({
         fontFamily: fontStyle,
         fontSize: fontSize + "px",
         backgroundColor: bgColor,
+        zIndex:trackNum
       }}
     >
       <div ref={textRef} className={`${styles.data}`} style={{ color: color }}>

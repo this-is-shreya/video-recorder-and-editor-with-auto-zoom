@@ -1,4 +1,4 @@
-const {clerkMiddleware} = require("@clerk/express")
+const { clerkMiddleware } = require("@clerk/express");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -11,7 +11,7 @@ app.use(clerkMiddleware());
 // In your Node.js backend (e.g., server.js or routes/subtitles.js)
 const authRouter = require("./routes/auth");
 const userRouter = require("./routes/user");
-
+const exportRouter = require("./routes/export");
 
 app.use(
   "/temp",
@@ -22,8 +22,9 @@ app.use(
   },
   express.static(path.join(__dirname, "temp"))
 );
-app.use("/api/auth", authRouter)
+app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
+app.use("/api/export", exportRouter);
 app.use((req, res) => {
   res.status(404).send("Not Found");
 });
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_login TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-  );`
+  );`;
 
 const createTableQuery = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -81,8 +82,6 @@ CREATE TABLE IF NOT EXISTS feedback (
   await pool.query(createUserTableQuery);
   console.log("Table created");
 })();
-
-
 
 app.listen(3000, () => {
   console.log("Server is running on port 3000");

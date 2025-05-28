@@ -6,7 +6,16 @@ import { pixels } from "../../utils/PixelsPerSecondEnum";
 import { mediaType, transitionType } from "../../utils/MediaEnum";
 import { FaBolt } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBolt, faClapperboard, faFont, faIcons, faImage, faMicrophone, faMusic, faPanorama } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBolt,
+  faClapperboard,
+  faFont,
+  faIcons,
+  faImage,
+  faMicrophone,
+  faMusic,
+  faPanorama,
+} from "@fortawesome/free-solid-svg-icons";
 import { FaMusic } from "react-icons/fa";
 import { notify } from "../../utils/toast";
 
@@ -50,6 +59,7 @@ const Track = ({
   const [trackMedia, setTrackMedia] = useState([]); // Store media data
   const [prevZoom, setPrevZoom] = useState(zoomTimeline);
   const freeResizeList = ["text-basic", "background"];
+  const [cleanupDone, setCleanupDone] = useState(false);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -62,7 +72,6 @@ const Track = ({
       return;
     }
     const obj = getMediaSrcAndType(e);
-    console.log("obj is ", obj);
 
     const src = obj.src;
     const _mediaType = obj.mediaType;
@@ -81,20 +90,18 @@ const Track = ({
       null,
       trackNum
     );
-    console.log(">>isoverlapping", isOverlapping);
 
     if (!isOverlapping) {
       setElements((prev) => [...prev, { id, trackNum }]);
       setTrackMedia([
         ...trackMedia,
-        { id, src, mediaType: _mediaType, duration:Number(duration) },
+        { id, src, mediaType: _mediaType, duration: Number(duration) },
       ]);
       setPositions((prev) => ({
         ...prev,
         [id]: { x, y, width },
       }));
       if (_mediaType !== mediaType.effects) {
-        console.log("entered here for ", _mediaType);
         setSourceAndTiming((prev) => [
           ...prev,
           {
@@ -128,8 +135,6 @@ const Track = ({
           },
         ]);
       } else {
-        console.log("added effects");
-
         setEffectsAndTiming((prev) => [
           ...prev,
           {
@@ -163,7 +168,10 @@ const Track = ({
     const newX = data.x;
     const newY = data.y;
     const width = positions[id]?.width || 100;
-    if(Math.abs(newX - positions[id].x) === 0 && Math.abs(newY - positions[id].y) === 0) {
+    if (
+      Math.abs(newX - positions[id].x) === 0 &&
+      Math.abs(newY - positions[id].y) === 0
+    ) {
       return;
     }
     const isOverlapping = checkOverlap(
@@ -171,12 +179,6 @@ const Track = ({
       elements,
       positions,
       id,
-      numTrack
-    );
-    console.log(
-      "handledragstop overlapping ",
-      isOverlapping,
-      "tracknum is ",
       numTrack
     );
 
@@ -192,11 +194,19 @@ const Track = ({
         ...prev,
         [id]: { ...prev[id], x: newX, y: newY },
       }));
+      
       const media = trackMedia.find((m) => m.id === id);
-      const duration = Number(media?.duration || 0);
+      let item = sourceAndTiming.find((m) => m.id === id);
+      let duration;
+      
+      if (item) {
+        duration = item.newEnd - item.newStart;
+      } else {
+        item = effectsAndTiming.find((m) => m.id === id);
+        duration = item ? item.newEnd - item.newStart : 0;
+      }
+      
       if (media.mediaType === mediaType.effects) {
-        console.log("effects media");
-        
         setEffectsAndTiming((prev) =>
           prev.map((item) => {
             if (item.id === id) {
@@ -213,19 +223,20 @@ const Track = ({
                 speedStart:
                   Math.floor(newX / pixels[zoomTimeline]) +
                   (item.speedStart - item.start),
-                newStart:
-                  Math.floor(newX / pixels[zoomTimeline]) +
-                  (item.newStart - item.start),
-                start: Math.floor(newX / pixels[zoomTimeline]),
+                newStart: Math.floor(newX / pixels[zoomTimeline]),
+                start:
+                  Math.floor(newX / pixels[zoomTimeline]) -
+                  item.newStart -
+                  item.start,
                 speedEnd:
                   Math.floor(newX / pixels[zoomTimeline]) +
                   duration +
                   (item.speedEnd - item.end),
-                newEnd:
+                newEnd: Math.floor(newX / pixels[zoomTimeline]) + duration,
+                end:
                   Math.floor(newX / pixels[zoomTimeline]) +
                   duration +
                   (item.end - item.newEnd),
-                end: Math.floor(newX / pixels[zoomTimeline]) + duration,
                 trackX: newX,
                 trackNum: numTrack,
               };
@@ -235,17 +246,10 @@ const Track = ({
           })
         );
       } else {
-        
-        
         setSourceAndTiming((prev) =>
           prev.map((item) => {
-            
             if (item.id === id) {
-              console.log(
-                "delta is ",
-                Math.floor(newX / pixels[zoomTimeline]),
-                item.zoomStart, item.start
-              );
+
               const time = convertToFormattedTime(
                 Math.floor(newX / pixels[zoomTimeline]) +
                   duration +
@@ -254,6 +258,8 @@ const Track = ({
               if (time > maxTime) {
                 setMaxTime(time);
               }
+              
+
               return {
                 ...item,
                 // zoomStart:
@@ -262,19 +268,20 @@ const Track = ({
                 speedStart:
                   Math.floor(newX / pixels[zoomTimeline]) +
                   (item.speedStart - item.start),
-                newStart:
-                  Math.floor(newX / pixels[zoomTimeline]) +
-                  (item.newStart - item.start),
-                start: Math.floor(newX / pixels[zoomTimeline]),
+                newStart: Math.floor(newX / pixels[zoomTimeline]),
+                start:
+                  Math.floor(newX / pixels[zoomTimeline]) -
+                  item.newStart -
+                  item.start,
                 speedEnd:
                   Math.floor(newX / pixels[zoomTimeline]) +
                   duration +
                   (item.end - item.speedEnd),
-                newEnd:
+                newEnd: Math.floor(newX / pixels[zoomTimeline]) + duration,
+                end:
                   Math.floor(newX / pixels[zoomTimeline]) +
                   duration +
                   (item.end - item.newEnd),
-                end: Math.floor(newX / pixels[zoomTimeline]) + duration,
                 trackX: newX,
                 trackNum: numTrack,
               };
@@ -314,16 +321,18 @@ const Track = ({
 
     if (direction === "left") {
       let diff = source.newStart - delta.width / pixels[zoomTimeline];
+     
+
       if (!isFreeResizable) {
-        diff = diff > source.speedEnd ? source.speedEnd : diff;
-        diff = diff < source.speedStart ? source.speedStart : diff;
+        diff = diff > source.end ? source.end : diff;
+        diff = diff < source.start ? source.start : diff;
 
         newX =
-          diff === source.speedStart
+          diff === source.start
             ? Math.floor(diff * pixels[zoomTimeline])
             : newX;
       }
-      console.log(">>inside resize ", source.newStart, diff, newX);
+    
       setPositions((prev) => ({
         ...prev,
         [id]: {
@@ -332,22 +341,25 @@ const Track = ({
           width: Math.floor(source.newEnd - diff) * pixels[zoomTimeline],
         },
       }));
+
       const updatedSourceAndTiming = sourceAndTiming.map((item) => {
         if (item.id === id) {
+
           return {
             ...item,
-            newStart: Number(diff.toFixed(1)),
+            startsFrom:
+              Math.floor(Number(diff.toFixed(1)) - item.newStart) +
+              item.startsFrom,
+            newStart: Math.floor(diff.toFixed(1)),
             trackX: newX,
             // zoomCenter: { x: 0, y: 0 },
             // zoomStart: null,
             // zoomDuration: null,
             // zoomLevel: 1,
-            startsFrom: Math.floor(Number(diff.toFixed(1)) - item.start),
           };
         }
         return item;
       });
-      // console.log("starts from ", Math.floor(diff - item.start));
 
       setSourceAndTiming(updatedSourceAndTiming);
 
@@ -367,9 +379,8 @@ const Track = ({
       let diff =
         source.newEnd / source.speed + delta.width / pixels[zoomTimeline];
       if (!isFreeResizable) {
-        diff = diff > source.speedEnd ? source.speedEnd : diff;
-        diff = diff < source.speedStart ? source.speedStart : diff;
-        console.log(">>", diff, source.newEnd);
+        diff = diff > source.end ? source.end : diff;
+        diff = diff < source.start ? source.start : diff;
       }
       setPositions((prev) => ({
         ...prev,
@@ -383,7 +394,7 @@ const Track = ({
         if (item.id === id) {
           return {
             ...item,
-            newEnd: Number(diff.toFixed(1)),
+            newEnd: Math.floor(diff.toFixed(1)),
             // zoomCenter: { x: 0, y: 0 },
             // zoomStart: null,
             // zoomDuration: null,
@@ -420,35 +431,34 @@ const Track = ({
     numTrack
   ) => {
     for (const item of elements) {
-      console.log(">>elements ", item);
-      console.log(">>>", item.id, currentId, item.trackNum, numTrack);
+      // console.log(">>overlappingelements ", item);
+      // console.log(">>>overlapping", item.id, currentId, item.trackNum, numTrack);
 
       if (item.id !== currentId && item.trackNum === numTrack) {
         const rect = positions[item.id];
 
-        console.log(">>currposition", newRect, "itemposition", rect);
-
-        if (rect && 
+        if (
+          rect &&
           newRect.left < rect.x + rect.width && // Left edge overlaps
           newRect.right > rect.x // Right edge overlaps
         ) {
-          console.log(">>FOR 1", newRect, rect);
-
           return true; // Overlap detected
         }
-        if (rect && rect.x + rect.width > newRect.left && rect.x < newRect.left) {
-          console.log(">>FOR 2");
-
+        if (
+          rect &&
+          rect.x + rect.width > newRect.left &&
+          rect.x < newRect.left
+        ) {
           return true;
         }
-        if (rect && newRect.right > rect.x && newRect.right < rect.x + rect.width) {
-          console.log(">>FOR 3");
-
+        if (
+          rect &&
+          newRect.right > rect.x &&
+          newRect.right < rect.x + rect.width
+        ) {
           return true;
         }
         if (rect && newRect.left < rect.x && newRect.right > rect.x) {
-          console.log(">>FOR 4");
-
           return true;
         }
       }
@@ -505,7 +515,6 @@ const Track = ({
     if (!currentTrack) return;
 
     const trackWidth = currentTrack.getBoundingClientRect().width;
-    console.log("track width", trackWidth, rightEdge);
     if (Math.round(rightEdge) >= Math.round(trackWidth)) {
       const extra = 60 * pixels[zoomTimeline];
       const allTracks = document.querySelectorAll(".track");
@@ -520,10 +529,6 @@ const Track = ({
       }
     }
   };
-
-  useEffect(() => {
-    console.log("Updated positions in state:", positions);
-  }, [positions]);
 
   useEffect(() => {
     if (!isSplit) {
@@ -560,12 +565,12 @@ const Track = ({
       }
     });
     setTrackMedia(tracks);
-    console.log("split", isSplit, "sourceandtiming is ", sourceAndTiming);
 
     setIsSplit(false);
   }, [isSplit]);
-
+  //speed change
   useEffect(() => {
+    let maxNewEnd = 0;
     const source = sourceAndTiming.find(
       (item) => item.id === selectedElement.id
     );
@@ -585,6 +590,8 @@ const Track = ({
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
       if (item.id === selectedElement.id) {
         const speedEnd = Math.floor(item.newEnd - item.newStart) / item.speed;
+        maxNewEnd = Math.max(maxNewEnd, speedEnd);
+
         return {
           ...item,
           speedEnd: Math.floor(item.newStart + speedEnd),
@@ -595,26 +602,16 @@ const Track = ({
 
     setSourceAndTiming(updatedSourceAndTiming);
     setIsSpeedChange(false);
-    console.log("s&t", sourceAndTiming, positions);
-  }, [isSpeedChange]);
 
-  useEffect(() => {
-    const source = effectsAndTiming.find(
-      (item) => item.id === selectedElement.id
+    maxNewEnd = effectsAndTiming.reduce(
+      (max, obj) => Math.max(max, obj?.newEnd),
+      maxNewEnd
     );
-    if (!source) return;
-
-    setPositions((prev) => ({
-      ...prev,
-      [selectedElement.id]: {
-        ...prev[selectedElement.id],
-        width: Math.floor(Number(source.text) / 10) * pixels[zoomTimeline],
-      },
-    }));
-    setIsTimerChanged(false);
-  }, [isTimerChanged]);
+    const time = convertToFormattedTime(maxNewEnd);
+    setMaxTime(time);
+  }, [isSpeedChange]);
+  //delete media
   useEffect(() => {
-    console.log("in track sandt", sourceAndTiming);
     if (!isDeleteMedia) {
       return;
     }
@@ -643,30 +640,32 @@ const Track = ({
       if (!prev) return prev;
 
       const newState = prev;
-      console.log("OLD POSITION", newState);
 
       delete newState[selectedElement.id];
-      console.log("NEW POSITION", newState);
 
       return newState;
     });
     // setPositions((prev)=>{return prev.every((item)=>item.id !== selectedElement)});
     setElements((prev) => {
-      console.log("every element", prev);
-
-      return prev.filter((item) => item.id !== selectedElement.id);
+      return prev.filter(
+        (item) => String(item.id) !== String(selectedElement.id)
+      );
     });
     setTrackMedia(() => {
       return [...tracks];
     });
+    setCleanupDone(true);
+  }, [isDeleteMedia]);
+  //cleanup
+  useEffect(() => {
+    if (!cleanupDone) return;
+
     setSelectedElement({});
     setIsDeleteMedia(false);
-    console.log("POSITIONS ", positions, "track media ", tracks);
-  }, [isDeleteMedia]);
-
+    setCleanupDone(false); // reset for next time
+  }, [cleanupDone]);
+  //changes in max time
   useEffect(() => {
-    console.log("new S&T", sourceAndTiming, effectsAndTiming);
-
     let maxNewEnd = sourceAndTiming.reduce(
       (max, obj) => Math.max(max, obj?.newEnd),
       0
@@ -678,15 +677,8 @@ const Track = ({
     );
 
     setMaxTime(convertToFormattedTime(maxNewEnd));
-  }, [
-    isDeleteMedia,
-    isSplit,
-    isSpeedChange,
-    sourceAndTiming,
-    effectsAndTiming,
-    isTrim,
-  ]);
-
+  }, [isDeleteMedia, isSplit, sourceAndTiming, effectsAndTiming, isTrim]);
+  // zoom timeline
   useEffect(() => {
     const updatedPosition = Object.fromEntries(
       Object.entries(positions).map(([key, item]) => [
@@ -702,7 +694,7 @@ const Track = ({
     setPositions(updatedPosition);
     setPrevZoom(zoomTimeline);
   }, [zoomTimeline]);
-
+  // loading data in timeline
   useEffect(() => {
     if (fetchFromTimeline) {
       let tracks = [];
@@ -738,25 +730,12 @@ const Track = ({
       expandTracksIfNeeded(maxNewEnd * pixels[zoomTimeline], trackNum);
       setTrackMedia(tracks);
       setFetchFromTimeline(false);
-      notify("Project data loaded successfully!", "success");
     }
   }, [fetchFromTimeline]);
-
-  useEffect(() => {
-    console.log(
-      "changes made, now ",
-      sourceAndTiming,
-      effectsAndTiming,
-      trackMedia,
-      positions,
-      elements
-    );
-  }, [sourceAndTiming, effectsAndTiming]);
   // undo-redo
   useEffect(() => {
     if (undo || redo) {
       let tracks = [];
-      const newSourceAndTiming = 
       sourceAndTiming.forEach((source) => {
         if (source.trackNum === trackNum) {
           tracks.push({
@@ -766,19 +745,6 @@ const Track = ({
             duration: Math.floor(Number(source.newEnd - source.newStart)),
           });
         }
-
-        if (!elements.some((el) => el.id === source.id)) {
-          setElements((prev) => [...prev, { id: source.id, trackNum }]);
-        }
-
-        setPositions((prev) => ({
-          ...prev,
-          [source.id]: {
-            x: source.trackX, // Preserve x position
-            y: 0, // Preserve y if it exists, else default to 0
-            width: (source.newEnd - source.newStart) * pixels[zoomTimeline],
-          },
-        }));
       });
 
       effectsAndTiming.forEach((source) => {
@@ -790,19 +756,6 @@ const Track = ({
             duration: Math.floor(Number(source.newEnd - source.newStart)),
           });
         }
-
-        if (!elements.some((el) => el.id === source.id)) {
-          setElements((prev) => [...prev, { id: source.id, trackNum }]);
-        }
-
-        setPositions((prev) => ({
-          ...prev,
-          [source.id]: {
-            x: prev[source.id]?.x || source.trackX, // Preserve x position
-            y: prev[source.id]?.y ?? 0, // Preserve y if it exists
-            width: (source.newEnd - source.newStart) * pixels[zoomTimeline],
-          },
-        }));
       });
 
       setTrackMedia(tracks);
@@ -871,10 +824,19 @@ const Track = ({
           }}
           onDragStop={(e, data) => {
             e.preventDefault();
+            if (!positions[m.id]) {
+              return;
+            }
+            if (
+              Math.abs(data.x - positions[m.id].x) < 1 &&
+              Math.abs(data.y - positions[m.id].y) === 0
+            ) {
+              return;
+            }
             if (
               m.mediaType === mediaType.video &&
               !(Math.abs(data.x - positions[m.id].x) < 1) &&
-              Math.abs(data.y - positions[m.id].y) === 0
+              Math.abs(data.y - positions[m.id].y) >= 0
             ) {
               resetTransitions(m.id);
             }
@@ -882,12 +844,15 @@ const Track = ({
 
             let newTrackNum = null;
 
-            for (let i = 1; i <= 2; i++) {
+            for (let i = 1; i <= 5; i++) {
               const trackElement = document.getElementById(`track-${i}`);
               if (trackElement) {
                 const rect = trackElement.getBoundingClientRect();
 
-                if (t.top >= rect.top && t.top + 40 <= rect.bottom) {
+                if (
+                  Math.abs(t.top - rect.top) <= 10 &&
+                  Math.abs(t.top + 40 - rect.bottom) <= 10
+                ) {
                   newTrackNum = i; // Set new track number
                 }
               }
@@ -901,8 +866,10 @@ const Track = ({
                   el.id === m.id ? { ...el, trackNum: newTrackNum } : el
                 )
               );
+              let snappedY = Math.round(data.y / 50) * 50;
+              const snappedData = { ...data, y: snappedY };
 
-              handleDragStop(m.id, e, data, newTrackNum);
+              handleDragStop(m.id, e, snappedData, newTrackNum);
             }
           }}
         >
@@ -911,7 +878,7 @@ const Track = ({
             className="track-video"
             style={{
               width: `${positions[m.id]?.width}px`,
-              height: "100%",
+              height: "90%",
               backgroundColor:
                 m.mediaType === mediaType.video
                   ? "#15A9CF"

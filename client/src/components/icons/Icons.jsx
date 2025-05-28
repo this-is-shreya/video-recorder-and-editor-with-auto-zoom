@@ -13,8 +13,6 @@ const Icons = () => {
     fetch(`https://api.iconify.design/search?query=${search}`)
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
-
         setIcons(data.icons);
       });
   };
@@ -23,7 +21,6 @@ const Icons = () => {
       e.target.tagName.toLowerCase() === "img"
         ? e.target
         : e.target.querySelector("img");
-    console.log("alt is ", element.getAttribute("alt"));
 
     const id = Date.now();
     e.dataTransfer.setData("text/plain", element.getAttribute("alt"));

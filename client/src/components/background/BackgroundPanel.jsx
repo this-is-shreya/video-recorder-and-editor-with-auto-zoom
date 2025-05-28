@@ -3,7 +3,6 @@ import { mediaType } from "../../utils/MediaEnum";
 
 const BackgroundPanel = () => {
   const handleDragStart = (e) => {
-    console.log("DRAG STARTED", e.target.getAttribute("data-alt"));
     
     const id = Date.now();
     e.dataTransfer.setData("id", id);

@@ -1,3 +1,9 @@
+.container{
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: center;
+}
 /* From Uiverse.io by Satwinder04 */
 .header {
   display: flex;
@@ -6,7 +12,7 @@
   height: 50px;
   background-color: #090911;
   padding:20px;
-  gap: 25px
+  justify-content: space-between;
 }
 .input-container {
   width: 150px;
@@ -14,7 +20,6 @@
 
 .input-container input[type="text"] {
   font-size: 15px;
-  width: 100%;
   border: none;
   border-bottom: 2px solid #ccc;
   padding: 5px 0;

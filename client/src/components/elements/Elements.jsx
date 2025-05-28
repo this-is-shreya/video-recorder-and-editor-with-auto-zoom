@@ -7,7 +7,6 @@ const Elements = () => {
       e.target.tagName.toLowerCase() === "img"
         ? e.target
         : e.target.querySelector("img");
-    console.log(element);
     
     if (!element) {
       e.dataTransfer.setData("text/plain", e.target.getAttribute("alt"));

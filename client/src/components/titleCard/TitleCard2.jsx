@@ -12,7 +12,12 @@ const terminalLines = [
   "🔥 Launching App...",
 ];
 
-export default function TitleCard2({ fontSize = "1.5rem", duration = 3, text="Sample text" }) {
+export default function TitleCard2({
+  fontSize = "1.5rem",
+  duration = 3,
+  text = "Sample text",
+  trackNum,
+}) {
   const lineRefs = useRef([]);
   const [done, setDone] = useState(false);
 
@@ -34,7 +39,7 @@ export default function TitleCard2({ fontSize = "1.5rem", duration = 3, text="Sa
   }, []);
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{ zIndex: trackNum }}>
       <div className={styles.terminal}>
         {terminalLines.map((line, i) => (
           <p

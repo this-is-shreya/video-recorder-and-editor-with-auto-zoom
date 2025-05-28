@@ -46,7 +46,15 @@ const AppContext = createContext({
   mediaFiles: null,
   setMediaFiles: () => {},
   projectTitle: null,
-  setProjectTitle: () => {}
+  setProjectTitle: () => {},
+  startRecording: () => {},
+  stopRecording: () => {},
+  mediaBlobUrl: null,
+  clearBlobUrl: () => {},
+  isExportPreview: null,
+  setIsExportPreview: () => {},
+  isSubtitleGen: null,
+  setIsSubtitleGen: () => {}
 });
 
 export default AppContext;

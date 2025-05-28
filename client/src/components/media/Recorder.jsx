@@ -46,7 +46,6 @@ const Recorder = () => {
 
         // Auto-stop when user clicks "Stop Sharing"
         screenStream.getVideoTracks()[0].onended = () => {
-          console.log("Screen sharing stopped by user.");
           stopRecording();
         };
 
@@ -77,9 +76,8 @@ const Recorder = () => {
       }
 
       setIsRecording(true);
-      console.log("Recording started.");
     } catch (err) {
-      console.error("Error accessing media devices:", err);
+      // console.error("Error accessing media devices:", err);
     }
   };
 
@@ -105,7 +103,6 @@ const Recorder = () => {
     }, 500);
 
     setIsRecording(false);
-    console.log("Recording stopped and downloaded.");
   };
 
   // Helper function to download recordings
@@ -120,7 +117,6 @@ const Recorder = () => {
     a.click();
     URL.revokeObjectURL(url);
     document.body.removeChild(a);
-    console.log(`${filename} downloaded.`);
   };
 
   return (

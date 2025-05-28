@@ -27,7 +27,7 @@ const Media = () => {
   };
   // console.log("files", files);
   const handleDragStart = (e, _mediaType, preview, index, fileObj) => {
-    console.log("dragging", fileObj);
+    // console.log("dragging", fileObj);
 
     const element =
       _mediaType === mediaType.audio
@@ -36,7 +36,7 @@ const Media = () => {
     const id = Date.now();
     // Ensure metadata is loaded before accessing duration
     if (element.readyState >= 1 || _mediaType !== mediaType.video) {
-      console.log("duration", element.duration, preview);
+      // console.log("duration", element.duration, preview);
       const src = preview;
       e.dataTransfer.setData("text/plain", src);
       e.dataTransfer.setData("media-type", _mediaType);
@@ -80,7 +80,7 @@ const Media = () => {
       <br></br>
       <div className="media-container">
         {mediaFiles.map((fileObj, index) => (
-          <div key={index} className="media-item" data-tooltip-id="tooltip">
+          <div key={index} className="media-item" data-tooltip-id="tooltip" data-tooltip-content={fileObj.file.name}>
             {fileObj.file.type.startsWith("video") && (
               <video
                 src={fileObj.preview}
@@ -101,11 +101,10 @@ const Media = () => {
                     e.target.currentTime = Number.MAX_SAFE_INTEGER;
                     e.target.ontimeupdate = () => {
                       e.target.ontimeupdate = null;
-                      console.log("Actual Duration:", e.target.duration);
                       e.target.currentTime = 0; // Reset to the beginning
                     };
                   } else {
-                    console.log("Duration:", e.target.duration);
+                    // console.log("Duration:", e.target.duration);
                   }
                 }}
               />
@@ -133,11 +132,10 @@ const Media = () => {
                       e.target.currentTime = Number.MAX_SAFE_INTEGER;
                       e.target.ontimeupdate = () => {
                         e.target.ontimeupdate = null;
-                        console.log("Actual Duration:", e.target.duration);
                         e.target.currentTime = 0; // Reset to the beginning
                       };
                     } else {
-                      console.log("Duration:", e.target.duration);
+                      // console.log("Duration:", e.target.duration);
                     }
                   }}
                 />
@@ -174,7 +172,6 @@ const Media = () => {
             <Tooltip
               id="tooltip"
               place="right"
-              content={fileObj.file.name}
               style={{
                 backgroundColor: "#892fff",
                 color: "white",

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import styles from "./styles/typing-text.module.css"
 
-export default function TypingText({ text, typingSpeed = 100, loop = false, delayAfterTyping = 2000 }) {
+export default function TypingText({ text, typingSpeed = 100, loop = false, delayAfterTyping = 2000, trackNum }) {
   const [displayText, setDisplayText] = useState("")
   const [isTyping, setIsTyping] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -32,7 +32,7 @@ export default function TypingText({ text, typingSpeed = 100, loop = false, dela
   }, [currentIndex, isTyping, text, typingSpeed, loop, delayAfterTyping])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{zIndex:trackNum}}>
       <span className={styles.text}>{displayText}</span>
       <span className={styles.cursor}></span>
     </div>

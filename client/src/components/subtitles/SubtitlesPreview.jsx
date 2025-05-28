@@ -20,10 +20,9 @@ const SubtitlesPreview = () => {
     setSubtitleArray,
     subtitleStyle,
   } = useContext(AppContext);
-  console.log(">>subtitles", subtitleArray);
 
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
-  const allWords = subtitleArray.flatMap((group) => group.words);
+  const allWords = subtitleArray?.flatMap((group) => group.words);
 
   // Track previous times to handle 1-second jumps
   const prevTimeRef = useRef(0);
@@ -87,7 +86,7 @@ const SubtitlesPreview = () => {
       }
     } else {
       const activeIndex = allWords.findIndex(
-        (word) => currentTime >= word.start && currentTime < word.end
+        (word) => currentTime >= word?.start && currentTime < word?.end
       );
 
       if (activeIndex !== -1) {
@@ -109,17 +108,6 @@ const SubtitlesPreview = () => {
 
     prevTimeRef.current = currentTime;
   }, [subtitleArray, seekerPosition, zoomTimeline]);
-
-  useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data.subtitleArray) {
-        setSubtitleArray(event.data.subtitleArray);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
 
   // 🛠️ Conditionally render the component inside JSX instead
   if (

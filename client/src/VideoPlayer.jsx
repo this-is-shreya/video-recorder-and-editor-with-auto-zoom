@@ -12,9 +12,8 @@ const VideoPlayer = ({ _aspectRatio, isExportRecording }) => {
     setSeekerPosition,
     maxTime,
     convertToPixels,
-    isPlaying
+    isPlaying,
   } = useContext(AppContext);
-  console.log("SEEKER POSITION IS ", seekerPosition);
   const [hasExportStarted, setHasExportStarted] = useState(false);
 
   const getWidthByAspectRatio = (aspectRatio = "16/9") => {
@@ -27,14 +26,12 @@ const VideoPlayer = ({ _aspectRatio, isExportRecording }) => {
     return `${clampedVw}vw`;
   };
   const width = getWidthByAspectRatio(_aspectRatio);
-  console.log("VideoPlayer width", width);
   const updateSeekerPositionDuringExport = () => {
     const maxPositionInPixels = convertToPixels(maxTime);
     setInterval(() => {
       setSeekerPosition((prevSeekerPosition) => {
         return prevSeekerPosition + 10; //10 pixels per second
       });
-      console.log("SEEKER POSITION DURING EXPORT", seekerPosition);
       if (seekerPosition >= maxPositionInPixels) {
         clearInterval(this);
       }
@@ -43,8 +40,6 @@ const VideoPlayer = ({ _aspectRatio, isExportRecording }) => {
   useEffect(() => {
     if (isExportRecording && !hasExportStarted) {
       setHasExportStarted(true);
-      console.log("Export started, updating seeker position");
-      
       updateSeekerPositionDuringExport();
     }
   }, [isPlaying]);
@@ -60,8 +55,11 @@ const VideoPlayer = ({ _aspectRatio, isExportRecording }) => {
     >
       <SubtitlesPreview />
       <TextEffect />
-      <MediaPlayerContainer trackNum={2}/>
-      <MediaPlayerContainer trackNum={1}/>
+      <MediaPlayerContainer trackNum={5} />
+      <MediaPlayerContainer trackNum={4} />
+      <MediaPlayerContainer trackNum={3} />
+      <MediaPlayerContainer trackNum={2} />
+      <MediaPlayerContainer trackNum={1} />
     </div>
   );
 };

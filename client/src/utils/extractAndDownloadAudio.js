@@ -1,3 +1,5 @@
+import { notify } from "./toast";
+
 export async function extractAudioFromBlobURL(blobUrl) {
   try {
     // Fetch the Blob from the Blob URL
@@ -26,7 +28,8 @@ export async function extractAudioFromBlobURL(blobUrl) {
     link.click();
     document.body.removeChild(link);
   } catch (error) {
-    console.error("Error extracting audio:", error);
+    notify("Error extracting audio", "error");
+    // console.error("Error extracting audio:", error);
   }
 }
 

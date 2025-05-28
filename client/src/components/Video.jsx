@@ -62,22 +62,22 @@ const Video = () => {
 
     setSourceAndTiming(updatedSourceAndTiming);
   };
-  const changeSpeed = (e) => {
-    if (!selectedElement) return;
+  // const changeSpeed = (e) => {
+  //   if (!selectedElement) return;
 
-    setIsSpeedChange(true);
-    const newSpeed = Number(e.target.value);
+  //   setIsSpeedChange(true);
+  //   const newSpeed = Number(e.target.value);
 
-    // Update the state immutably
-    const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement.id) {
-        return { ...item, speed: newSpeed };
-      }
-      return item;
-    });
+  //   // Update the state immutably
+  //   const updatedSourceAndTiming = sourceAndTiming.map((item) => {
+  //     if (item.id === selectedElement.id) {
+  //       return { ...item, speed: newSpeed };
+  //     }
+  //     return item;
+  //   });
 
-    setSourceAndTiming(updatedSourceAndTiming);
-  };
+  //   setSourceAndTiming(updatedSourceAndTiming);
+  // };
   const changeVolume = (e) => {
     if (!selectedElement) return;
     // Update the state immutably
@@ -103,22 +103,9 @@ const Video = () => {
     setClickPosition({ x: clickX, y: clickY }); // Store position for red dot
   };
   const addZoom = () => {
-    console.log(
-      "adding zoom for ",
-      zoomStartValue,
-      zoomDuration,
-      zoomDuration <= zoomStartValue
-    );
     if (zoomDuration == null) {
       return;
     }
-    console.log(
-      "adding zoom for ",
-      zoomStart,
-      zoomDuration,
-      currentElement.newStart,
-      currentElement.newEnd
-    );
 
     if (
       zoomStartValue < currentElement.newStart ||
@@ -126,14 +113,6 @@ const Video = () => {
     ) {
       return;
     }
-    console.log(
-      "adding zoom for ",
-      zoomStart,
-      zoomDuration,
-      currentElement.newStart,
-      currentElement.newEnd
-    );
-
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
       if (item.id === selectedElement.id) {
         return {
@@ -189,8 +168,6 @@ const Video = () => {
   };
   const handleVideoEffect = (e) => {
     const effect = e.target.getAttribute("data-alt");
-    console.log("EFFECT IS ", effect);
-
     if (!selectedElement) return;
     // Update the state immutably
     const updatedSourceAndTiming = sourceAndTiming.map((item) => {
@@ -263,7 +240,6 @@ const Video = () => {
       currentElement.startsFrom;
 
     setZoomStartValue(Math.floor(seekerPosition / pixels[zoomTimeline]));
-    console.log("ZOOM START IS : ", zoomStartValue);
   }, [seekerPositionManuallyChanged, isSplit, isPlaying, seekerPosition]);
   return (
     <div className="slidecontainer">
@@ -293,7 +269,7 @@ const Video = () => {
             </div>
 
             {/* Speed */}
-            <div
+            {/* <div
               style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}
             >
               <label style={{ width: "80px" }}>Speed</label>
@@ -311,7 +287,7 @@ const Video = () => {
                 />
                 <label style={{ marginLeft: "5px" }}>{speed}x</label>
               </div>
-            </div>
+            </div> */}
           </div>
 
           <div

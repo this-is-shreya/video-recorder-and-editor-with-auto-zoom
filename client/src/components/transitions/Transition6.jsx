@@ -67,7 +67,7 @@ export default function Transition6({svgFile}) {
             height="10620"
           />
         </mask>
-        <rect width="630" height="420" fill="black" mask="url(#liquidMask)" />
+        <rect width="630" height="420" fill="white" mask="url(#liquidMask)" />
       </svg>
     </div>
   );

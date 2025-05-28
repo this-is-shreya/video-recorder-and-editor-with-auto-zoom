@@ -7,6 +7,7 @@
   justify-content: center;
   align-items: center;
   font-family: "Courier New", Courier, monospace;
+  position: absolute;
 }
 
 .terminal {
@@ -16,6 +17,7 @@
   box-shadow: 0 0 20px #00ff88aa;
   width: 80%;
   max-width: 700px;
+  position: absolute;
 }
 
 .line {

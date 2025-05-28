@@ -8,7 +8,7 @@ import styles from "./styles/TitleCard4.module.css"
  * @property {string} tagline
  */
 
-export default function TitleCard4({ text }) {
+export default function TitleCard4({ text, trackNum }) {
   const [isVisible, setIsVisible] = useState(false)
   const [channelName, tagline] = text.split(" ")
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function TitleCard4({ text }) {
   }, [])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{zIndex:trackNum}}>
       <div className={`${styles.content} ${isVisible ? styles.visible : ""}`}>
         <div className={styles.scanlines}></div>
 
