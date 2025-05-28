@@ -226,8 +226,8 @@ const Track = ({
                 newStart: Math.floor(newX / pixels[zoomTimeline]),
                 start:
                   Math.floor(newX / pixels[zoomTimeline]) -
-                  item.newStart -
-                  item.start,
+                  (item.newStart -
+                  item.start),
                 speedEnd:
                   Math.floor(newX / pixels[zoomTimeline]) +
                   duration +
@@ -271,8 +271,8 @@ const Track = ({
                 newStart: Math.floor(newX / pixels[zoomTimeline]),
                 start:
                   Math.floor(newX / pixels[zoomTimeline]) -
-                  item.newStart -
-                  item.start,
+                  (item.newStart -
+                  item.start),
                 speedEnd:
                   Math.floor(newX / pixels[zoomTimeline]) +
                   duration +

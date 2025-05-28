@@ -5,8 +5,8 @@ const path = require("path");
 const pool = require("./model/config");
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "1gb" }));
-app.use(express.urlencoded({ limit: "1gb", extended: true }));
+app.use(express.json({ limit: "100gb" }));
+app.use(express.urlencoded({ limit: "100gb", extended: true }));
 app.use(clerkMiddleware());
 // In your Node.js backend (e.g., server.js or routes/subtitles.js)
 const authRouter = require("./routes/auth");

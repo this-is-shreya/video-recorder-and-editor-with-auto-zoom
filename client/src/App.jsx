@@ -15,7 +15,7 @@ import { convertBlobToBase64 } from "./utils/blobToBase64";
 import { notify } from "./utils/toast";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import CryptoJS from "crypto-js";
-import { sendEncryptedData } from "./utils/authorization";
+import { sendEncryptedData, sendUnencryptedData } from "./utils/authorization";
 
 function App() {
   let { id } = useParams();
@@ -102,23 +102,28 @@ function App() {
       project_title: !projectTitle ? "Project Title" : projectTitle,
     };
 
-    const encryptedDataReq = await sendEncryptedData(
-      `${import.meta.env.VITE_SERVER_URL}/api/user/save-data`,
-      projectData,
-      token
-    );
-
-    if (encryptedDataReq.ok) {
-      notify("Project saved successfully!", "success");
-      if (window.location.href.includes("new")) {
-        navigate(`/${projectId}`);
+    try{
+      const unencryptedDataReq = await sendUnencryptedData(
+        `${import.meta.env.VITE_SERVER_URL}/api/user/save-data`,
+        projectData,
+        token
+      );
+      if (unencryptedDataReq?.ok) {
+        notify("Project saved successfully!", "success");
+        if (window.location.href.includes("new")) {
+          navigate(`/${projectId}`);
+        }
+      } else if (unencryptedDataReq?.status === 401) {
+        notify("Please login to continue", "info");
+        navigate("/auth");
+      } else {
+        notify("Error saving project data", "error");        
       }
-    } else if (encryptedDataReq.status === 401) {
-      notify("Please login to continue", "info");
-      navigate("/auth");
-    } else {
+    }
+    catch (error) {
       notify("Error saving project data", "error");
     }
+
   };
 
   useEffect(() => {

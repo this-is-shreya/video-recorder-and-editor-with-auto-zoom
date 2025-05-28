@@ -109,7 +109,18 @@ module.exports.uploadVideo = async (req, res) => {
 
 module.exports.saveData = async (req, res) => {
   try {
-    const decrypted = decryptData(req.body.encryptedData);
+    console.log("entered save data", req.body);
+
+    // const decrypted = decryptData(req.body.encryptedData);
+    // let {
+    //   source_and_timing,
+    //   effects_and_timing,
+    //   project_id,
+    //   project_title,
+    //   elements,
+    //   positions,
+    // } = decrypted;
+
     let {
       source_and_timing,
       effects_and_timing,
@@ -117,7 +128,7 @@ module.exports.saveData = async (req, res) => {
       project_title,
       elements,
       positions,
-    } = decrypted;
+    } = req.body.data;
 
     console.log(
       "RECEIVED",
@@ -240,19 +251,38 @@ module.exports.deleteParticularProject = async (req, res) => {
   const userEmail = req.user.emailAddresses[0].emailAddress;
 
   console.log("Attempting to delete project:", id);
-
-  const query = `DELETE FROM projects WHERE project_id = $1 AND email = $2`;
-
+  const projectGetQuery = `SELECT * FROM projects WHERE project_id = $1 AND email = $2`;
+  const projectDeleteQuery = `DELETE FROM projects WHERE project_id = $1 AND email = $2`;
+  const mediaQuery = `DELETE FROM media_store WHERE id = $1`;
   try {
-    const result = await pool.query(query, [id, userEmail]);
-
+    const result = await pool.query(projectGetQuery, [id, userEmail]);
     if (result.rowCount === 0) {
       return res
         .status(404)
         .json({ message: "Project not found or unauthorized" });
     }
+    let project = result.rows[0];
+    let source_and_timing = project.source_and_timing;
+    if (source_and_timing && source_and_timing.length !== 0) {
+      source_and_timing.forEach(async (item) => {
+        try {
+          await pool.query(mediaQuery, [item.id]);
+        } catch (error) {
+          console.error("Error deleting media:", error);
+          return res.status(500).json({ message: "Error deleting media" });
+        }
+      });
+    }
+    try {
+      await pool.query(projectDeleteQuery, [id, userEmail]);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      return res.status(500).json({ message: "Error deleting project" });
+    }
 
-    return res.status(200).json({ message: "Project deleted successfully!" });
+    return res
+      .status(200)
+      .json({ message: "Project and media deleted successfully!" });
   } catch (error) {
     console.error("Delete error:", error);
     return res.status(500).json({ message: "Something went wrong" });
@@ -300,7 +330,7 @@ module.exports.checkAdmin = async (req, res) => {
     const query = `SELECT * FROM users where email = $1`;
 
     const result = await pool.query(query, [email]);
-    
+
     return res.status(200).json({ isAdmin: result.rows[0].is_admin });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" + error });
@@ -310,7 +340,7 @@ module.exports.getNumUsers = async (req, res) => {
   try {
     const query = `SELECT COUNT(*) FROM users AS count`;
 
-    const result = await pool.query(query, []);    
+    const result = await pool.query(query, []);
     return res.status(200).json({ numUsers: result.rows[0].count });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" + error });
@@ -332,7 +362,7 @@ module.exports.getFeedbacks = async (req, res) => {
   try {
     const query = `SELECT * FROM FEEDBACK ORDER BY created_at DESC LIMIT 10`;
 
-    const result = await pool.query(query,[]);
+    const result = await pool.query(query, []);
     return res.status(200).json({ feedbacks: result.rows });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" + error });

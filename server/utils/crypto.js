@@ -36,7 +36,8 @@ const decryptData = (encryptedData) => {
     if (!SECRET_KEY) {
       throw new Error("SECRET_KEY is not defined in environment variables");
     }
-
+    // console.log("encryptedData", encryptedData, typeof encryptedData);
+    
     if (!encryptedData || typeof encryptedData !== "string") {
       throw new Error("Invalid encrypted data provided");
     }

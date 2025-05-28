@@ -73,6 +73,42 @@ export const decryptData = (encryptedData) => {
  * @param {object} options - Additional fetch options
  * @returns {Promise<Response>} - Fetch response
  */
+export const sendUnencryptedData = async (url, data, token, options = {}) => {
+  try {
+
+    const defaultOptions = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ data }),
+    };
+    
+    const mergedOptions = {
+      ...defaultOptions,
+      ...options,
+      headers: {
+        ...defaultOptions.headers,
+        ...options.headers,
+      },
+    };
+
+    return await fetch(url, mergedOptions);
+  } catch (error) {
+    // console.error("Error sending encrypted data:", error);
+    // throw error;
+  }
+};
+
+/**
+ * Send encrypted data to server
+ * @param {string} url - API endpoint
+ * @param {any} data - Data to encrypt and send
+ * @param {string} token - Authorization token
+ * @param {object} options - Additional fetch options
+ * @returns {Promise<Response>} - Fetch response
+ */
 export const sendEncryptedData = async (url, data, token, options = {}) => {
   try {
     const encryptedData = encryptData(data);
