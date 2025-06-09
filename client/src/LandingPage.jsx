@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./LandingPage.module.css";
 import { RiCameraLensAiLine } from "react-icons/ri";
@@ -6,6 +6,7 @@ import { FaClapperboard, FaQuoteLeft, FaStar } from "react-icons/fa6";
 import { BsStars } from "react-icons/bs";
 
 const LandingPage = () => {
+  const [featureSource, setFeatureSource] = useState("/assets/feature1.mp4");
   const navigate = useNavigate();
   const featureSet = [
     "Record and edit in one place",
@@ -91,13 +92,28 @@ const LandingPage = () => {
                 10+ creators record using RookieClip
               </p>
             </div>
-            <label style={{ backgroundColor: "#f5e2bf", fontSize: "15px", padding:"5px", width:"fit-content", borderRadius:"5px" }}>
-              <BsStars />Last updated on 26 May, 2025
+            <label
+              style={{
+                backgroundColor: "#f5e2bf",
+                fontSize: "15px",
+                padding: "5px",
+                width: "fit-content",
+                borderRadius: "5px",
+              }}
+            >
+              <BsStars />
+              Last updated on 9 June, 2025
             </label>
           </div>
         </div>
         <div className={styles["video-demo"]}>
-          <video src=""></video>
+          <video
+            src="/assets/proper demo.mp4"
+            autoPlay
+            loop
+            muted
+            style={{ width: "100%" }}
+          ></video>
         </div>
       </div>
       <h1 style={{ marginTop: "10%", textAlign: "center" }}>
@@ -108,43 +124,62 @@ const LandingPage = () => {
           {featureSet.map((val, index) => (
             <div
               key={index}
-              className={styles["feature"]}
+              className={
+                styles["feature"] +
+                (featureSource === `/assets/feature${index + 1}.mp4`
+                  ? ` ${styles["selected"]}`
+                  : "")
+              }
               data-alt={`${index}`}
+              onClick={() =>
+                setFeatureSource(`/assets/feature${index + 1}.mp4`)
+              }
             >
               <h3>{val}</h3>
             </div>
           ))}
         </div>
         <div className={styles["video-demo"]}>
-          <video src=""></video>
+          <video
+            src={featureSource}
+            autoPlay
+            loop
+            muted
+            style={{ width: "100%" }}
+          ></video>
         </div>
       </div>
       <div className={styles["testimonials"]}>
         <div className={styles["testimonial"]}>
           <FaQuoteLeft color="EB1AB4" size={"30"} />
           <p>
-            The zoom effects are spot-on, the cursor tracking is super smooth
-            and the editing tools are easy to use. It's exactly what I needed!
+            I was blown away by how smooth everything feels. I’ve used complex
+            tools before, but this one gets out of your way and just lets you be
+            creative.
           </p>
           <div className={styles["user-details"]}>
-            <img className={styles["avatar"]} src="/assets/aesthetic.png"></img>
+            <img className={styles["avatar"]} src="/assets/shobhit.png"></img>
             <div>
-              <h4>Name</h4>
-              <p>@user</p>
+              <h4>Shobhit Srivastava</h4>
+              <a href="https://www.linkedin.com/in/shobhit-srivastava-s1323/">
+                @sshobhit
+              </a>
             </div>
           </div>
         </div>
         <div className={styles["testimonial"]}>
           <FaQuoteLeft color="EB1AB4" size={"30"} />
           <p>
-            The zoom effects are spot-on, the cursor tracking is super smooth
-            and the editing tools are easy to use. It's exactly what I needed!
+            The filters and animated text effects are 🔥. Definitely sticking with
+            this one.
           </p>
           <div className={styles["user-details"]}>
-            <img className={styles["avatar"]} src="/assets/aesthetic.png"></img>
+            <img className={styles["avatar"]} src="/assets/nikita.png"></img>
             <div>
-              <h4>Name</h4>
-              <p>@user</p>
+              <h4>Nikita Kubavat</h4>
+              <a href="https://www.linkedin.com/in/nikita-kubavat-15122001/">
+                @niki
+              </a>
             </div>
           </div>
         </div>

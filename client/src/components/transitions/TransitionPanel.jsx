@@ -14,7 +14,7 @@ const TransitionPanel = () => {
   const [transition, setTransition] = useState(null);
   const previousSourceAndTiming = sourceAndTiming.find(
     (item) =>
-      item.newEnd - currentSourceAndTiming?.newStart <= 1 &&
+      Math.abs(item.newEnd - currentSourceAndTiming?.newStart) <= 1 &&
       item.id !== selectedElement.id &&
       item.trackNum === currentSourceAndTiming?.trackNum
   );

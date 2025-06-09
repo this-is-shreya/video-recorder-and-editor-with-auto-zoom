@@ -21,7 +21,7 @@
   opacity: 0;
   backdrop-filter: blur(0px);
   animation: blur-fade-in 0.8s ease-out forwards,
-    blur-fade-out 0.8s ease-in forwards 1.5s;
+    blur-fade-out 0.8s ease-in forwards 2.5s;
   animation-play-state: inherit;
   z-index: 9999;
   height: 100%;

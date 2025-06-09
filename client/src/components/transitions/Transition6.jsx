@@ -26,7 +26,7 @@ export default function Transition6({svgFile}) {
       { y: 0 },
       {
         y: -10266, // Height of the sprite sheet for full animation
-        duration: 1,
+        duration: 2.5,
         ease: "steps(29)",
         onComplete: () => {
           // Hide the mask image to avoid black screen after the animation

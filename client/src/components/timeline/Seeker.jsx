@@ -3,7 +3,8 @@ import AppContext from "../../AppContext";
 
 const Seeker = () => {
   const {seekerPosition} = useContext(AppContext)
-
+  console.log("Seeker position:", seekerPosition);
+  
   return (
     <div
       style={{
