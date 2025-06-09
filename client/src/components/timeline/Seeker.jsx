@@ -3,19 +3,17 @@ import AppContext from "../../AppContext";
 
 const Seeker = () => {
   const {seekerPosition} = useContext(AppContext)
-  console.log("Seeker position:", seekerPosition);
-  
   return (
     <div
       style={{
         position: "absolute",
-        top: 0,
+        top: -100,
         left: `${seekerPosition}px`, // Adjust based on timeline scale
-        height: `280px`,
+        height: "600px",
         width: "2px",
-        background: "grey",
-        zIndex:1,
-        marginTop:"25px"
+        background: "#cbc3c3",
+        zIndex: 1,
+        marginTop: "25px",
       }}
     />
   );

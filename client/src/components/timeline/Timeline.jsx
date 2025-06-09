@@ -182,7 +182,6 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           startsFrom: roundedTime - source.newStart + source.startsFrom,
           trackNum: source.trackNum,
         };
-console.log("NEW SOURCE", newSource);
 
         // First half
         const updatedSource = {
@@ -570,9 +569,10 @@ console.log("NEW SOURCE", newSource);
           style={{ overflowX: "auto", width: "100%" }}
         >
           <Controls />
-          <Seeker />
 
           <div className="all-tracks">
+            <Seeker />
+
             <Track
               isDeleteMedia={isDeleteMedia}
               setIsDeleteMedia={setIsDeleteMedia}
