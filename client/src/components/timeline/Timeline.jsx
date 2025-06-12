@@ -356,19 +356,27 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           navigate("/auth");
         } else {
           notify("Loading project data. Please wait.", "info");
-          const result = await fetchEncryptedData(
-            `${import.meta.env.VITE_SERVER_URL}/api/user/project/${id}`,
-            token
-          );
-
-          if (result.status === 401) {
-            navigate("/auth");
+          // const result = await fetchEncryptedData(
+          //   `${import.meta.env.VITE_SERVER_URL}/api/user/project/${id}`,
+          //   token
+          // );
+          let result = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/project/${id}`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+          });
+          result = await result.json();
+          if (!result || result.error) {
+            notify("Error fetching project data", "error");
           }
           const { project_title, source_and_timing, effects_and_timing } =
-            result.data.data;
+            result.data;
 
-          const _elements = result.data.data.elements;
-          const _positions = result.data.data.positions;
+          const _elements = result.data.elements;
+          const _positions = result.data.positions;
 
           if (
             !result ||

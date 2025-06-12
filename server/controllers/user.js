@@ -238,7 +238,8 @@ module.exports.getParticularProject = async (req, res) => {
         );
       }
       project.source_and_timing = source_and_timing;
-      sendEncryptedResponse(res, { data: project });
+      // sendEncryptedResponse(res, { data: project });
+      return res.status(200).json({ data: project });
     } else {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -292,7 +293,7 @@ module.exports.deleteParticularProject = async (req, res) => {
 };
 
 module.exports.getAllProjects = async (req, res) => {
-  const query = `SELECT * FROM projects WHERE email = $1`;
+  const query = `SELECT project_id, project_title, created_at FROM projects WHERE email = $1`;
   try {
     const result = await pool.query(query, [
       req.user.emailAddresses[0].emailAddress,

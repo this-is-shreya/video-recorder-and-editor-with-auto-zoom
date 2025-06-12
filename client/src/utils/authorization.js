@@ -165,7 +165,6 @@ export const fetchEncryptedData = async (url, token, options = {}) => {
         ...defaultOptions.headers,
         ...options.headers,
       },
-      credentials: "include",
     };
 
     const response = await fetch(url, mergedOptions);
