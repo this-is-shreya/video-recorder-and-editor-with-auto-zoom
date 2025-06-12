@@ -23,6 +23,7 @@ const ProjectCard = ({ project }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          credentials:"include"
         }
       )
         .then(async (res) => {

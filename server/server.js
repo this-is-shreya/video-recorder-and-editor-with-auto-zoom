@@ -4,7 +4,13 @@ const cors = require("cors");
 const path = require("path");
 const pool = require("./model/config");
 const app = express();
-app.use(cors());
+const corsOptions = {
+  origin: ["https://rookieclip.com", "https://server.rookieclip.com", "http://localhost:5173"],
+  methods: ["GET", "POST", "PUT", "DELETE"], // Allow necessary HTTP methods
+  credentials: true, // Allow cookies/auth headers
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "100gb" }));
 app.use(express.urlencoded({ limit: "100gb", extended: true }));
 app.use(clerkMiddleware());
@@ -31,7 +37,7 @@ app.use((req, res) => {
 
 const createUserTableQuery = `
 CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY,
   email VARCHAR(320) NOT NULL,
   name TEXT NOT NULL,
   num_exports INT DEFAULT 0,
@@ -46,7 +52,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 const createTableQuery = `
 CREATE TABLE IF NOT EXISTS projects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY,
   source_and_timing JSON NOT NULL,
   effects_and_timing JSON NOT NULL,
   elements JSON NOT NULL,
@@ -68,14 +74,13 @@ CREATE TABLE IF NOT EXISTS media_store (
 `;
 const createFeedbackTableQuery = `
 CREATE TABLE IF NOT EXISTS feedback (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY,
   feedback TEXT,
   email VARCHAR(255) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 `;
 (async () => {
-  await pool.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`); // for gen_random_uuid()
   await pool.query(createTableQuery);
   await pool.query(createMediaTableQuery);
   await pool.query(createFeedbackTableQuery);

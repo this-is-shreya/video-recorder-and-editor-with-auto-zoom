@@ -20,6 +20,7 @@ const AdminDashboard = () => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      credentials:"include"
     })
       .then(async (res) => {
         const result = await res.json();
@@ -39,6 +40,7 @@ const AdminDashboard = () => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      credentials:"include"
     })
       .then(async (res) => {
         const result = await res.json();
@@ -58,6 +60,7 @@ const AdminDashboard = () => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      credentials:"include"
     })
       .then(async (res) => {
         const result = await res.json();        
@@ -78,6 +81,7 @@ const AdminDashboard = () => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      credentials:"include"
     })
       .then(async (res) => {
         const result = await res.json();

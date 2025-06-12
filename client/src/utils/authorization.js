@@ -92,6 +92,7 @@ export const sendUnencryptedData = async (url, data, token, options = {}) => {
         ...defaultOptions.headers,
         ...options.headers,
       },
+      credentials:"include"
     };
 
     return await fetch(url, mergedOptions);
@@ -129,6 +130,7 @@ export const sendEncryptedData = async (url, data, token, options = {}) => {
         ...defaultOptions.headers,
         ...options.headers,
       },
+      credentials: "include",
     };
 
     return await fetch(url, mergedOptions);
@@ -153,6 +155,7 @@ export const fetchEncryptedData = async (url, token, options = {}) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
+      credentials: "include",
     };
 
     const mergedOptions = {
@@ -162,6 +165,7 @@ export const fetchEncryptedData = async (url, token, options = {}) => {
         ...defaultOptions.headers,
         ...options.headers,
       },
+      credentials: "include",
     };
 
     const response = await fetch(url, mergedOptions);
@@ -195,6 +199,7 @@ export const isAuthorized = async (projectId, email) => {
           projectId: projectId,
           email: email,
         }),
+        credentials:"include"
       }
     )
       .then(async (res) => {

@@ -102,7 +102,7 @@ const LandingPage = () => {
               }}
             >
               <BsStars />
-              Last updated on 9 June, 2025
+              Last updated on 12 June, 2025
             </label>
           </div>
         </div>
@@ -202,7 +202,7 @@ const LandingPage = () => {
       </button>
       <div className={styles["footer"]}>
         <p style={{ color: "#ddd" }}>
-          Copyright © 2025 RookieClip | All Rights Reserved
+          Copyright © 2025 RookieClip | All Rights Reserved | {<a href="/privacy-policy" style={{textDecoration:"none", color:"white"}}>Privacy Policy</a>} | {<a href="/terms-of-service" style={{textDecoration:"none", color:"white"}}>Terms of Service</a>}
         </p>
       </div>
     </div>

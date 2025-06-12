@@ -9,6 +9,7 @@ const {
   encryptData,
   sendEncryptedResponse,
 } = require("../utils/crypto");
+const { v4: uuidv4 } = require("uuid");
 
 module.exports.checkProject = async (req, res) => {
   try {
@@ -157,9 +158,10 @@ module.exports.saveData = async (req, res) => {
       await pool.query(updateQuery, updateValues);
       return res.status(200).json({ success: true, id: project_id });
     } else {
-      const query = `INSERT INTO projects (source_and_timing, effects_and_timing, project_id, email, project_title, elements, positions) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`;
-
+      const query = `INSERT INTO projects (id, source_and_timing, effects_and_timing, project_id, email, project_title, elements, positions) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`;
+      const id = uuidv4(); // Generate a new UUID
       const values = [
+        id,
         JSON.stringify(source_and_timing),
         JSON.stringify(effects_and_timing),
         project_id,
@@ -308,13 +310,16 @@ module.exports.getAllProjects = async (req, res) => {
 };
 
 module.exports.feedback = async (req, res) => {
-  const query = `INSERT INTO FEEDBACK(feedback, email) VALUES($1, $2)`;
+  const query = `INSERT INTO FEEDBACK(id, feedback, email) VALUES($1, $2, $3)`;
   console.log("body is ", req.body);
 
   const { feedback } = req.body;
   console.log("FEEDBACK RECEIVED: ", feedback);
-
-  const values = [feedback, req.user.emailAddresses[0].emailAddress];
+  const id = uuidv4(); // Generate a new UUID for the feedback entry
+  if (!feedback || feedback.trim() === "") {
+    return res.status(400).json({ error: "Feedback cannot be empty" });
+  }
+  const values = [id, feedback, req.user.emailAddresses[0].emailAddress];
 
   try {
     await pool.query(query, values);

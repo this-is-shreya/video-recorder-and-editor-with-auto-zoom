@@ -190,6 +190,7 @@ const ExportPreview = () => {
               Authorization: `Bearer ${token}`,
             },
             body: formData,
+            credentials:"include"
           })
             .then(async (res) => {
               res = await res.json();
@@ -216,6 +217,7 @@ const ExportPreview = () => {
                   body: JSON.stringify({
                     audioPath: audioUrl,
                   }),
+                  credentials:"include"
                 }
               )
                 .then(async (res) => {

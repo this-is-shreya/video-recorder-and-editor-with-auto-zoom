@@ -1,5 +1,6 @@
 const { clerkClient, getAuth } = require("@clerk/express");
 const pool = require("../model/config");
+const { v4: uuidv4 } = require("uuid");
 
 module.exports.authenticate = async (req, res, next) => {
   const auth = getAuth(req); // This reads the token from headers (e.g., Authorization Bearer)
@@ -15,8 +16,10 @@ module.exports.authenticate = async (req, res, next) => {
       user.emailAddresses[0].emailAddress,
     ]);
     if (!result.rowCount || result.rowCount === 0) {
-      const query = `INSERT INTO users (email, name) VALUES ($1, $2)`;
+      const id = uuidv4();
+      const query = `INSERT INTO users (id, email, name) VALUES ($1, $2, $3)`;
       const values = [
+        id,
         user.emailAddresses[0].emailAddress,
         `${user.firstName} ${user.lastName}`,
       ];

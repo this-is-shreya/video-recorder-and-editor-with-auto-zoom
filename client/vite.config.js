@@ -19,8 +19,4 @@ export default defineConfig({
       "Cross-Origin-Opener-Policy": "same-origin",
     },
   },
-  input: {
-    main: resolve(__dirname, "index.html"),
-    remotion: resolve(__dirname, "/src/components/remotion/remotion.html"),
-  },
 });

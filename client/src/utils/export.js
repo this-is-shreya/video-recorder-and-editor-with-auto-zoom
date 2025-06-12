@@ -192,6 +192,7 @@ export const processVideoWithFFmpeg = async (
           Authorization: `Bearer ${token}`,
         },
         body: formData,
+        credentials: "include",
       }
     );
 

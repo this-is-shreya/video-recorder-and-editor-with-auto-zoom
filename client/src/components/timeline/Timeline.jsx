@@ -275,6 +275,7 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
         "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({ feedback: feedback }),
+      credentials:"include"
     })
       .then((res) => {
         if (res.ok) {
