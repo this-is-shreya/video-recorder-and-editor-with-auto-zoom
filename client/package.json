@@ -1,13 +1,38 @@
 {
-  "name": "video-editor",
+  "name": "rookie-clip",
   "private": true,
   "type": "module",
   "version": "0.0.0",
+  "main": "electron/main.cjs",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build",
+    "electron:dev": "electron .",
+    "electron:build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.rookieclip.app",
+    "productName": "RookieClip",
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    },
+    "files": [
+      "dist",
+      "electron"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.30.4",
@@ -26,7 +51,6 @@
     "baffle": "^0.3.6",
     "ccapture.js": "^1.1.0",
     "crypto-js": "^4.2.0",
-    "electron": "^35.0.3",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.4.10",
     "gsap": "^3.12.7",
@@ -48,7 +72,8 @@
     "react-tooltip": "^5.28.1",
     "recordrtc": "^5.6.2",
     "styled-components": "^6.1.15",
-    "three": "^0.174.0"
+    "three": "^0.174.0",
+    "uiohook-napi": "^1.5.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -56,12 +81,16 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "electron": "^36.5.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.17.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
     "uglify-js": "^3.19.3",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "wait-on": "^8.0.3"
   }
 }

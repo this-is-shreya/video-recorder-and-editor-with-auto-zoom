@@ -60,12 +60,13 @@ const SubtitlesPreview = () => {
     if (timeJumped) {
       const minTime = Math.min(prevTimeRef.current, currentTime);
       const maxTime = Math.max(prevTimeRef.current, currentTime);
-
+      if(allWords.length === 0) return;
       const wordsInTimeRange = allWords.filter(
         (word) =>
-          (word.start >= minTime && word.start < maxTime) ||
-          (word.end > minTime && word.end <= maxTime) ||
-          (word.start <= minTime && word.end >= maxTime)
+          word !== undefined && 
+          (word?.start >= minTime && word?.start < maxTime) ||
+          (word?.end > minTime && word?.end <= maxTime) ||
+          (word?.start <= minTime && word?.end >= maxTime)
       );
 
       if (wordsInTimeRange.length > 0) {

@@ -129,6 +129,7 @@ module.exports.saveData = async (req, res) => {
       project_title,
       elements,
       positions,
+      cursor_data_obj,
     } = req.body.data;
 
     console.log(
@@ -138,14 +139,15 @@ module.exports.saveData = async (req, res) => {
       project_id,
       project_title,
       elements,
-      positions
+      positions,
+      cursor_data_obj
     );
 
     const getQuery = `SELECT * FROM projects where project_id = $1`;
     const getResult = await pool.query(getQuery, [project_id]);
 
     if (getResult.rows.length > 0) {
-      const updateQuery = `UPDATE projects SET source_and_timing = $1, effects_and_timing = $2, elements = $3, positions = $4, project_title = $5 WHERE project_id = $6`;
+      const updateQuery = `UPDATE projects SET source_and_timing = $1, effects_and_timing = $2, elements = $3, positions = $4, project_title = $5, cursor_data_obj = $7 WHERE project_id = $6`;
       const updateValues = [
         JSON.stringify(source_and_timing),
         JSON.stringify(effects_and_timing),
@@ -153,12 +155,13 @@ module.exports.saveData = async (req, res) => {
         JSON.stringify(positions),
         project_title,
         project_id,
+        JSON.stringify(cursor_data_obj),
       ];
 
       await pool.query(updateQuery, updateValues);
       return res.status(200).json({ success: true, id: project_id });
     } else {
-      const query = `INSERT INTO projects (id, source_and_timing, effects_and_timing, project_id, email, project_title, elements, positions) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`;
+      const query = `INSERT INTO projects (id, source_and_timing, effects_and_timing, project_id, email, project_title, elements, positions, cursor_data_obj) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`;
       const id = uuidv4(); // Generate a new UUID
       const values = [
         id,
@@ -169,6 +172,7 @@ module.exports.saveData = async (req, res) => {
         project_title,
         JSON.stringify(elements),
         JSON.stringify(positions),
+        JSON.stringify(cursor_data_obj),
       ];
 
       const result = await pool.query(query, values);

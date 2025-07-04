@@ -32,7 +32,7 @@ const Subtitle2 = ({ wordsToShow, startIdx, highlightedWordIndex }) => {
         const globalIndex = startIdx + idx;
         const isCurrent = globalIndex === highlightedWordIndex;
 
-        if (word.word.length === 0) {
+        if (!word || !word.word || word?.word.length === 0) {
           return <></>;
         }
         return (

@@ -37,7 +37,7 @@ const Subtitle1 = ({ wordsToShow, startIdx, highlightedWordIndex }) => {
           globalIndex > highlightedWordIndex &&
           globalIndex <= highlightedWordIndex + 3;
 
-        if (word.word.length === 0) {
+        if (!word || !word.word || word?.word.length === 0) {
           return <></>;
         }
         return (

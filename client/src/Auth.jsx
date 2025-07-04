@@ -1,30 +1,50 @@
-import { useSignIn, useAuth } from "@clerk/clerk-react";
+import { useSignIn, useSignUp, useAuth } from "@clerk/clerk-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./Auth.module.css";
 import { RiCameraLensAiLine } from "react-icons/ri";
 import { notify } from "./utils/toast";
+
 export default function Auth() {
-  const { isLoaded, signIn } = useSignIn();
+  const { isLoaded: signInLoaded, signIn } = useSignIn();
+  const { isLoaded: signUpLoaded, signUp } = useSignUp();
   const { isSignedIn } = useAuth();
   const navigate = useNavigate();
 
+  const isLoaded = signInLoaded && signUpLoaded;
+
   useEffect(() => {
     if (isSignedIn) {
-      navigate("/dashboard"); // Redirect if already signed in
+      navigate("/dashboard");
     }
   }, [isSignedIn, navigate]);
 
-  const handleGoogleSignIn = async () => {
-    if (!isLoaded || !signIn) return;
+  const handleGoogleAuth = async () => {
+    if (!isLoaded) return;
 
     try {
-      await signIn.authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: "/dashboard",
-      });
-    } catch (err) {
-      notify("Google sign-in failed. Please try again later", "error")
+      // Try sign in first (for existing users)
+      if (signIn) {
+        await signIn.authenticateWithRedirect({
+          strategy: "oauth_google",
+          redirectUrl: "/dashboard",
+        });
+      }
+    } catch (signInError) {
+      console.log("Sign in failed, trying sign up:", signInError);
+
+      try {
+        // If sign in fails, try sign up (for new users)
+        if (signUp) {
+          await signUp.authenticateWithRedirect({
+            strategy: "oauth_google",
+            redirectUrl: "/dashboard",
+          });
+        }
+      } catch (signUpError) {
+        console.error("Both sign in and sign up failed:", signUpError);
+        notify("Authentication failed. Please try again later", "error");
+      }
     }
   };
 
@@ -47,7 +67,7 @@ export default function Auth() {
       </div>
       <div className={styles["login-form"]}>
         <h1 style={{ fontSize: "40px" }}>Welcome, sign in to continue</h1>
-        <button className={styles["oauth-button"]} onClick={() => handleGoogleSignIn()}>
+        <button className={styles["oauth-button"]} onClick={handleGoogleAuth}>
           <svg className={styles["icon"]} viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

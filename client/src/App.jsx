@@ -51,6 +51,16 @@ function App() {
   const [subtitleStyle, setSubtitleStyle] = useState(null);
   const [mediaFiles, setMediaFiles] = useState([]);
   const [projectTitle, setProjectTitle] = useState("Project Title");
+  const [cursorDataObj, setCursorDataObj] = useState([]);
+  const [selectedZoomElement, setSelectedZoomElement] = useState({});
+  const [isRecording, setIsRecording] = useState(false);
+  const screenRecorder = useRef(null);
+  const cameraRecorder = useRef(null);
+  const screenChunks = useRef([]);
+  const cameraChunks = useRef([]);
+  const activeStreams = useRef([])
+  const [isRecordingCursor, setIsRecordingCursor] = useState(false);
+  const [recordingStartTime, setRecordingStartTime] = useState(null);
 
   const convertToFormattedTime = (position) => {
     const time = Math.floor(position);
@@ -60,7 +70,7 @@ function App() {
     const formattedSeconds = seconds < 10 ? `0${seconds}` : seconds;
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
     const formattedHours = hours < 10 ? `0${hours}` : hours;
-    
+
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
   };
   const convertToPixels = (time) => {
@@ -82,7 +92,7 @@ function App() {
         return "40vw"; // Default for 16:9 or unknown ratios
     }
   };
-  const handleSave = async (sources, effects, elements, positions) => {
+  const handleSave = async (sources, effects, elements, positions, cursorDataObj) => {
     if (sources.length === 0 && effects.length === 0) {
       notify("Please add a media on the timeline before saving", "warning");
       return;
@@ -100,9 +110,10 @@ function App() {
       positions: positions,
       project_id: projectId,
       project_title: !projectTitle ? "Project Title" : projectTitle,
+      cursor_data_obj: cursorDataObj
     };
 
-    try{
+    try {
       const unencryptedDataReq = await sendUnencryptedData(
         `${import.meta.env.VITE_SERVER_URL}/api/user/save-data`,
         projectData,
@@ -117,13 +128,11 @@ function App() {
         notify("Please login to continue", "info");
         navigate("/auth");
       } else {
-        notify("Error saving project data", "error");        
+        notify("Error saving project data", "error");
       }
-    }
-    catch (error) {
+    } catch (error) {
       notify("Error saving project data", "error");
     }
-
   };
 
   useEffect(() => {
@@ -146,111 +155,107 @@ function App() {
     fetchToken();
   }, []);
   return (
-    <ReactMediaRecorder
-      screen
-      video
-      blobPropertyBag={{ type: "video/webm" }}
-      render={({
-        startRecording,
-        stopRecording,
-        mediaBlobUrl,
-        clearBlobUrl,
-      }) => (
+    <AppContext.Provider
+      value={{
+        seekerPosition: seekerPosition,
+        setSeekerPosition: setSeekerPosition,
+        sourceAndTiming: sourceAndTiming,
+        setSourceAndTiming: setSourceAndTiming,
+        currentSourceAndTiming: currentSourceAndTiming,
+        setCurrentSourceAndTiming: setCurrentSourceAndTiming,
+        effectsAndTiming: effectsAndTiming,
+        setEffectsAndTiming: setEffectsAndTiming,
+        currentEffectsAndTiming: currentEffectsAndTiming,
+        setCurrentEffectsAndTiming: setCurrentEffectsAndTiming,
+        isPlaying: isPlaying,
+        setIsPlaying: setIsPlaying,
+        selectedElement: selectedElement,
+        setSelectedElement: setSelectedElement,
+        isSpeedChange: isSpeedChange,
+        setIsSpeedChange: setIsSpeedChange,
+        maxTime: maxTime,
+        setMaxTime: setMaxTime,
+        convertToFormattedTime: convertToFormattedTime,
+        convertToPixels: convertToPixels,
+        videoPlayerRef: videoPlayerRef,
+        seekerPositionManuallyChanged: seekerPositionManuallyChanged,
+        setSeekerPositionManuallyChanged: setSeekerPositionManuallyChanged,
+        zoomTimeline: zoomTimeline,
+        setZoomTimeline: setZoomTimeline,
+        isSplit: isSplit,
+        setIsSplit: setIsSplit,
+        isTrim: isTrim,
+        setIsTrim: setIsTrim,
+        isTimerChanged: isTimerChanged,
+        setIsTimerChanged: setIsTimerChanged,
+        dataArray: dataArray,
+        setDataArray: setDataArray,
+        aspectRatio: aspectRatio,
+        setAspectRatio: setAspectRatio,
+        getWidthByAspectRatio: getWidthByAspectRatio,
+        projectId: id,
+        isExportPreview: isExportPreview,
+        subtitleArray: subtitleArray,
+        setSubtitleArray: setSubtitleArray,
+        subtitleStyle: subtitleStyle,
+        setSubtitleStyle: setSubtitleStyle,
+        mediaFiles: mediaFiles,
+        setMediaFiles: setMediaFiles,
+        projectTitle: projectTitle,
+        setProjectTitle: setProjectTitle,
+        isExportPreview: isExportPreview,
+        setIsExportPreview: setIsExportPreview,
+        isSubtitleGen: isSubtitleGen,
+        setIsSubtitleGen: setIsSubtitleGen,
+        cursorDataObj: cursorDataObj,
+        setCursorDataObj: setCursorDataObj,
+        selectedZoomElement: selectedZoomElement,
+        setSelectedZoomElement: setSelectedZoomElement,
+        isRecording: isRecording,
+        setIsRecording: setIsRecording,
+        screenRecorder: screenRecorder,
+        cameraRecorder: cameraRecorder,
+        screenChunks: screenChunks,
+        cameraChunks: cameraChunks,
+        activeStreams: activeStreams,
+        isRecordingCursor: isRecordingCursor,
+        setIsRecordingCursor: setIsRecordingCursor,
+        recordingStartTime: recordingStartTime,
+        setRecordingStartTime: setRecordingStartTime
+      }}
+    >
+      {!isExportPreview && (
         <>
-          <AppContext.Provider
-            value={{
-              seekerPosition: seekerPosition,
-              setSeekerPosition: setSeekerPosition,
-              sourceAndTiming: sourceAndTiming,
-              setSourceAndTiming: setSourceAndTiming,
-              currentSourceAndTiming: currentSourceAndTiming,
-              setCurrentSourceAndTiming: setCurrentSourceAndTiming,
-              effectsAndTiming: effectsAndTiming,
-              setEffectsAndTiming: setEffectsAndTiming,
-              currentEffectsAndTiming: currentEffectsAndTiming,
-              setCurrentEffectsAndTiming: setCurrentEffectsAndTiming,
-              isPlaying: isPlaying,
-              setIsPlaying: setIsPlaying,
-              selectedElement: selectedElement,
-              setSelectedElement: setSelectedElement,
-              isSpeedChange: isSpeedChange,
-              setIsSpeedChange: setIsSpeedChange,
-              maxTime: maxTime,
-              setMaxTime: setMaxTime,
-              convertToFormattedTime: convertToFormattedTime,
-              convertToPixels: convertToPixels,
-              videoPlayerRef: videoPlayerRef,
-              seekerPositionManuallyChanged: seekerPositionManuallyChanged,
-              setSeekerPositionManuallyChanged:
-                setSeekerPositionManuallyChanged,
-              zoomTimeline: zoomTimeline,
-              setZoomTimeline: setZoomTimeline,
-              isSplit: isSplit,
-              setIsSplit: setIsSplit,
-              isTrim: isTrim,
-              setIsTrim: setIsTrim,
-              isTimerChanged: isTimerChanged,
-              setIsTimerChanged: setIsTimerChanged,
-              dataArray: dataArray,
-              setDataArray: setDataArray,
-              aspectRatio: aspectRatio,
-              setAspectRatio: setAspectRatio,
-              getWidthByAspectRatio: getWidthByAspectRatio,
-              projectId: id,
-              isExportPreview: isExportPreview,
-              subtitleArray: subtitleArray,
-              setSubtitleArray: setSubtitleArray,
-              subtitleStyle: subtitleStyle,
-              setSubtitleStyle: setSubtitleStyle,
-              mediaFiles: mediaFiles,
-              setMediaFiles: setMediaFiles,
-              projectTitle: projectTitle,
-              setProjectTitle: setProjectTitle,
-              startRecording: startRecording,
-              stopRecording: stopRecording,
-              mediaBlobUrl: mediaBlobUrl,
-              clearBlobUrl: clearBlobUrl,
-              isExportPreview: isExportPreview,
-              setIsExportPreview: setIsExportPreview,
-              isSubtitleGen: isSubtitleGen,
-              setIsSubtitleGen: setIsSubtitleGen,
-            }}
-          >
-            {!isExportPreview && (
-              <>
-                <Header />
-                <Navbar />
-                <div className="video-preview">
-                  <VideoPlayer />
-                  <div className="video-player-controls">
-                    <span>{currentTime}</span>
-                    <button
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      style={{ backgroundColor: "transparent", border: "none" }}
-                    >
-                      {isPlaying ? (
-                        <FontAwesomeIcon icon={faPause} size="lg" />
-                      ) : (
-                        <FontAwesomeIcon icon={faPlay} size="lg" />
-                      )}
-                    </button>
-                    <span>{maxTime}</span>
-                  </div>
-                </div>
-                <Timeline
-                  undo={undo}
-                  redo={redo}
-                  setUndo={setUndo}
-                  setRedo={setRedo}
-                  handleSave={handleSave}
-                />
-              </>
-            )}
-            {isExportPreview && <ExportPreview />}
-          </AppContext.Provider>
+          <Header />
+          <Navbar />
+          <div className="video-preview">
+            <VideoPlayer />
+            <div className="video-player-controls">
+              <span>{currentTime}</span>
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                style={{ backgroundColor: "transparent", border: "none" }}
+              >
+                {isPlaying ? (
+                  <FontAwesomeIcon icon={faPause} size="lg" />
+                ) : (
+                  <FontAwesomeIcon icon={faPlay} size="lg" />
+                )}
+              </button>
+              <span>{maxTime}</span>
+            </div>
+          </div>
+          <Timeline
+            undo={undo}
+            redo={redo}
+            setUndo={setUndo}
+            setRedo={setRedo}
+            handleSave={handleSave}
+          />
         </>
       )}
-    />
+      {isExportPreview && <ExportPreview />}
+    </AppContext.Provider>
   );
 }
 

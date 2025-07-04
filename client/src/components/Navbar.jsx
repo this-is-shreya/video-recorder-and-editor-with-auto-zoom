@@ -122,6 +122,15 @@ const Navbar = () => {
           <MdElectricBolt size={20} />
           <span>Elements</span>
         </button>
+        <button
+          className={`navbar-option${
+            activeState === navbarObject.zoom ? " active" : ""
+          }`}
+          onClick={() => setActiveState(navbarObject.zoom)}
+        >
+          <MdElectricBolt size={20} />
+          <span>Zoom</span>
+        </button>
       </div>
       <Panel panelType={activeState} />
     </div>

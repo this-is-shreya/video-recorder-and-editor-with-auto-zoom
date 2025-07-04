@@ -1,4 +1,6 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+"use client";
+
+import { useContext, useEffect, useRef, useState } from "react";
 import VideoPlayer from "../../VideoPlayer";
 import AppContext from "../../AppContext";
 import { processVideoWithFFmpeg } from "../../utils/export";
@@ -6,20 +8,35 @@ import { notify } from "../../utils/toast";
 import styles from "../header/styles/header.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
+import { recordingType } from "../../utils/MediaEnum";
 
 const ExportPreview = () => {
   const {
     setIsPlaying,
     maxTime,
     convertToPixels,
+    isExportPreview,
     setIsExportPreview,
     isSubtitleGen,
     setIsSubtitleGen,
     setSeekerPosition,
     setSeekerPositionManuallyChanged,
     setSubtitleArray,
+    cursorDataObj,
+    isPlaying,
+    screenRecorder,
+    cameraRecorder,
+    screenChunks,
+    cameraChunks,
+    activeStreams,
+    sourceAndTiming,
+    effectsAndTiming,
+    setSourceAndTiming,
+    setEffectsAndTiming
   } = useContext(AppContext);
+
   const [recordingStatus, setRecordingStatus] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
   const exportButtonRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const streamRef = useRef(null);
@@ -27,297 +44,638 @@ const ExportPreview = () => {
   const audioContextRef = useRef(null);
   const maxTimeInSeconds = convertToPixels(maxTime) / 10;
   const { getToken } = useAuth();
-  const navigate = useNavigate();
 
-  // Get best supported mime type
-  const getSupportedMimeType = () => {
-    const types = [
-      "video/webm;codecs=vp9,opus",
-      "video/webm;codecs=vp8,opus",
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=vp8",
-      "video/webm",
-    ];
-
-    return (
-      types.find((type) => MediaRecorder.isTypeSupported(type)) || "video/webm"
-    );
-  };
-
-  const captureVideoPlayer = async () => {
-    setSeekerPosition(0);
-    setSeekerPositionManuallyChanged(true);
-    setIsPlaying(false);
-    exportButtonRef.current.style.display = "none";
-    const token = await getToken();
-    if (!token) {
-      navigate("/auth");
-    }
-    setRecordingStatus("Initializing...");
-    recordedChunksRef.current = [];
-
-    const playerElement = document.querySelector(".video-player");
-    if (!playerElement) {
-      notify("Something went wrong", "error");
-      return;
-    }
-
+  // Enhanced subtitle generation with better error handling
+  const handleSubtitleGeneration = async (blob, token) => {
     try {
-      // Request screen capture
-      setRecordingStatus("Requesting screen capture...");
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          frameRate: 60,
-          displaySurface: "browser",
-          cursor: "never",
-        },
-        audio: false,
-        preferCurrentTab: true,
-      });
+      setRecordingStatus("Generating subtitles...");
+      const file = new File([blob], "video.webm");
+      const formData = new FormData();
+      formData.append("video", file);
 
-      streamRef.current = screenStream;
+      const uploadResponse = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/user/upload-video`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+          credentials: "include",
+        }
+      );
 
-      // Create and store audio context
-      setRecordingStatus("Setting up audio capture...");
-      const audioContext = new AudioContext();
-      const audioDestination = audioContext.createMediaStreamDestination();
-      audioContextRef.current = audioContext;
-
-      // Track connected audio elements to avoid duplicates
-      const connectedElements = new Set();
-
-      // Function to connect audio sources
-      const connectAudioSources = () => {
-        const audioElements = playerElement.querySelectorAll("video, audio");
-        let connectedSources = 0;
-
-        audioElements.forEach((element) => {
-          // Skip already connected elements
-          if (connectedElements.has(element)) return;
-
-          if (element.captureStream) {
-            try {
-              const elementStream = element.captureStream();
-              const audioTracks = elementStream.getAudioTracks();
-
-              if (audioTracks.length > 0) {
-                const source =
-                  audioContext.createMediaStreamSource(elementStream);
-                source.connect(audioDestination);
-                connectedElements.add(element);
-                connectedSources++;
-              }
-            } catch (err) {
-              notify("Could not capture audio stream", "error")
-            }
-          }
-        });
-
-        return connectedSources;
-      };
-
-      // Initial audio setup
-      let connectedSources = connectAudioSources();
-
-      // Set up audio monitoring interval to capture new audio elements
-      const audioMonitoringInterval = setInterval(() => {
-        const newSources = connectAudioSources();
-      }, 1000); // Check every second
-
-      // Store interval ID for cleanup
-      audioContextRef.current.monitoringInterval = audioMonitoringInterval;
-
-      // Get the video track
-      const videoTrack = screenStream.getVideoTracks()[0];
-
-      // Combine video with audio
-      const tracks = [videoTrack];
-
-      // Add audio tracks if available
-      if (audioDestination.stream.getAudioTracks().length > 0) {
-        tracks.push(audioDestination.stream.getAudioTracks()[0]);
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status}`);
       }
 
-      const combinedStream = new MediaStream(tracks);
+      const uploadResult = await uploadResponse.json();
+      setRecordingStatus("Processing audio for subtitles...");
 
-      setIsPlaying(true);
-      setRecordingStatus("Recording...");
-
-      // Set up recorder with the best supported mime type
-      const mimeType = getSupportedMimeType();
-      const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType,
-        videoBitsPerSecond: 80000000,
-        audioBitsPerSecond: 128000,
-      });
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
+      const subtitleResponse = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/user/generate-subtitles`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            audioPath: uploadResult.audioUrl,
+          }),
+          credentials: "include",
         }
-      };
+      );
 
-      mediaRecorder.onstop = async () => {
-        setIsPlaying(false);
-        setRecordingStatus("Processing recording...");
+      if (!subtitleResponse.ok) {
+        throw new Error(
+          `Subtitle generation failed: ${subtitleResponse.status}`
+        );
+      }
 
-        const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+      const subtitleData = await subtitleResponse.json();
+      console.log("Subtitle generation response:", subtitleData);
+      setRecordingStatus("Subtitles generated!");
+      setSubtitleArray(subtitleData.subtitles);
+    } catch (err) {
+      console.error("Subtitle generation failed:", err);
+      setRecordingStatus("Failed to generate subtitles");
+      notify("Subtitle generation failed", "error");
+    }
+  };
 
-        const { width, height, top, left } =
-          playerElement.getBoundingClientRect();
+  const startRecording = async (type = recordingType.screen) => {
+    try {
+      console.log("Starting div capture recording...");
+      setRecordingStatus("Initializing recording...");
+      setIsPlaying(false);
+      setSeekerPosition(0);
+      setSeekerPositionManuallyChanged(true);
+      setIsSubtitleGen(false);
+      exportButtonRef.current.style.display = "none";
+      // Get the video player element
+      const videoPlayerElement =
+        document.querySelector(".video-player") ||
+        document.querySelector('[class*="video-player"]') ||
+        document.querySelector("video");
 
-        const videoWidth = 1920;
-        const videoHeight = 1080;
-        const dpr = window.devicePixelRatio || 1;
+      if (!videoPlayerElement) {
+        throw new Error("Video player element not found");
+      }
 
-        const normalCrop = {
-          width: width * dpr,
-          height: height * dpr,
-          left: left * dpr,
-          top: top * dpr,
+      let screenStream = null;
+      let systemAudioStream = null;
+
+      // Method 1: Try getDisplayMedia with preferCurrentTab for better element capture
+      try {
+        console.log(
+          "Attempting getDisplayMedia with current tab preference..."
+        );
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            displaySurface: "window", // Focus on window capture
+            cursor: "never",
+            width: { ideal: 1920, max: 1920 },
+            height: { ideal: 1080, max: 1080 },
+            frameRate: { ideal: 30, max: 60 },
+          },
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 48000,
+          },
+          preferCurrentTab: true, // This helps capture the current browser tab
+        });
+
+        // Separate system audio capture for better reliability
+        try {
+          systemAudioStream = await navigator.mediaDevices.getDisplayMedia({
+            video: false,
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              sampleRate: 48000,
+            },
+          });
+        } catch (audioError) {
+          console.warn("Separate system audio capture failed:", audioError);
+        }
+      } catch (displayError) {
+        console.log(
+          "getDisplayMedia failed, trying alternative methods:",
+          displayError
+        );
+
+        // Fallback for Electron-specific APIs
+        if (window.electronAPI) {
+          try {
+            const sources = await window.electronAPI.getDesktopSources();
+            const appSource = sources.find((source) =>
+              source.name
+                .toLowerCase()
+                .includes(
+                  "Rookieclip - Auto Zoom Recorder and Editor".toLowerCase()
+                )
+            );
+
+            if (appSource) {
+              screenStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                  mandatory: {
+                    chromeMediaSource: "desktop",
+                    chromeMediaSourceId: appSource.id,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                  },
+                },
+                video: {
+                  mandatory: {
+                    chromeMediaSource: "desktop",
+                    chromeMediaSourceId: appSource.id,
+                    maxWidth: 1920,
+                    maxHeight: 1080,
+                    maxFrameRate: 30,
+                  },
+                },
+              });
+            }
+          } catch (electronError) {
+            console.error("Electron desktop capture failed:", electronError);
+          }
+        }
+
+        // Final fallback
+        if (!screenStream) {
+          screenStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              mediaSource: "screen",
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              frameRate: { ideal: 30 },
+            },
+          });
+        }
+      }
+
+      if (!screenStream) {
+        throw new Error("Could not obtain screen stream");
+      }
+      setIsRecording(true);
+      // Create audio context for mixing multiple audio sources
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      const audioDestination = audioContext.createMediaStreamDestination();
+
+      // Capture video element audio specifically
+      // const captureVideoElementAudio = () => {
+      //   try {
+      //     const videoElements = document.querySelectorAll("video, audio");
+      //     videoElements.forEach((element) => {
+      //       if (element.captureStream && !element.muted) {
+      //         try {
+      //           const elementStream = element.captureStream();
+      //           const audioTracks = elementStream.getAudioTracks();
+
+      //           if (audioTracks.length > 0) {
+      //             const source =
+      //               audioContext.createMediaStreamSource(elementStream);
+      //             source.connect(audioDestination);
+      //             console.log("Connected video element audio");
+      //           }
+      //         } catch (err) {
+      //           console.warn("Could not capture element audio:", err);
+      //         }
+      //       }
+      //     });
+      //   } catch (err) {
+      //     console.warn("Video element audio capture failed:", err);
+      //   }
+      // };
+
+      // Add system audio to mix
+      if (systemAudioStream) {
+        const systemAudioTracks = systemAudioStream.getAudioTracks();
+        if (systemAudioTracks.length > 0) {
+          const systemSource =
+            audioContext.createMediaStreamSource(systemAudioStream);
+          systemSource.connect(audioDestination);
+          console.log("Connected system audio");
+        }
+      } else if (screenStream.getAudioTracks().length > 0) {
+        const screenAudioTracks = screenStream.getAudioTracks();
+        const screenAudioSource = audioContext.createMediaStreamSource(
+          new MediaStream(screenAudioTracks)
+        );
+        screenAudioSource.connect(audioDestination);
+        console.log("Connected screen audio");
+      }
+
+      // Capture video element audio
+      // captureVideoElementAudio();
+
+      // Combine video and mixed audio
+      const videoTracks = screenStream.getVideoTracks();
+      const mixedAudioTracks = audioDestination.stream.getAudioTracks();
+
+      const combinedStream = new MediaStream([
+        ...videoTracks,
+        ...mixedAudioTracks,
+      ]);
+
+      // Enhanced MediaRecorder options
+      const getRecorderOptions = () => {
+        const options = {
+          mimeType: "video/webm;codecs=vp9",
+          videoBitsPerSecond: 100000000, // 100 Mbps for good quality
+          audioBitsPerSecond: 128000, // 128 kbps for audio
         };
 
-        setRecordingStatus("Processing video...");
-        if (isSubtitleGen) {
-          setRecordingStatus("Generating subtitles...");
-          const file = new File([blob], "video.webm");
-          const formData = new FormData();
-          formData.append("video", file);
+        // Try different codecs in order of preference
+        const codecPreferences = [
+          "video/webm;codecs=vp9,opus",
+          "video/webm;codecs=vp8,opus",
+          "video/webm;codecs=h264,opus",
+          "video/webm",
+        ];
 
-          fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/upload-video`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            body: formData,
-            credentials:"include"
-          })
-            .then(async (res) => {
-              res = await res.json();
-              setRecordingStatus("Processing audio for subtitles...");
-
-              return res.audioUrl;
-            })
-            .then(async(audioUrl) => {
-              const token = await getToken();
-              if(!token){
-                notify("Something went wrong", "error");
-                return;
-              }
-              fetch(
-                `${
-                  import.meta.env.VITE_SERVER_URL
-                }/api/user/generate-subtitles`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    audioPath: audioUrl,
-                  }),
-                  credentials:"include"
-                }
-              )
-                .then(async (res) => {
-                  const data = await res.json();
-                  setRecordingStatus("Subtitles generated!");
-                  setSubtitleArray(data.subtitles);
-                })
-                .catch((err) => {
-                  setRecordingStatus("Failed to generate subtitles1");
-                });
-            })
-            .catch((err) => {
-              setRecordingStatus("Failed to upload video");
-            });
-        } else {
-          const newBlob = await processVideoWithFFmpeg(
-            blob,
-            normalCrop,
-            {
-              width: videoWidth,
-              height: videoHeight,
-            },
-            token,
-            window.location.pathname.split("/")[1]
-          );
-
-          setRecordingStatus("Preparing download...");
-          downloadBlob(newBlob, "recording.webm");
-          setRecordingStatus("");
+        for (const codec of codecPreferences) {
+          if (MediaRecorder.isTypeSupported(codec)) {
+            options.mimeType = codec;
+            break;
+          }
         }
-        cleanupRecording();
+
+        return options;
       };
 
-      recorderRef.current = mediaRecorder;
-      mediaRecorder.start(1000); // Collect data every second
+      console.log("Creating MediaRecorder...");
+      const recorderOptions = getRecorderOptions();
+      console.log("Using recorder options:", recorderOptions);
 
-      // Auto-stop after max duration
+      screenRecorder.current = new MediaRecorder(
+        combinedStream,
+        recorderOptions
+      );
+      screenChunks.current = [];
+
+      // Enhanced event handlers
+      screenRecorder.current.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          screenChunks.current.push(event.data);
+          console.log(`Recording chunk: ${event.data.size} bytes`);
+        }
+      };
+
+      screenRecorder.current.onstop = () => {
+        stopRecording();
+        console.log(
+          `Recording stopped. Total chunks: ${screenChunks.current.length}`
+        );
+        setRecordingStatus("Processing recording...");
+
+        // Process and download the recording
+        setTimeout(async () => {
+          if (screenChunks.current.length > 0) {
+            const blob = new Blob(screenChunks.current, { type: "video/webm" });
+
+            // Generate subtitles if enabled
+            if (isSubtitleGen) {
+              const token = await getToken();
+              await handleSubtitleGeneration(blob, token);
+            } else {
+              const computedStyle = window.getComputedStyle(videoPlayerElement);
+              const rect = videoPlayerElement.getBoundingClientRect();
+
+              // Account for borders and padding
+              const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0;
+              const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+              const borderRight =
+                parseFloat(computedStyle.borderRightWidth) || 0;
+              const borderBottom =
+                parseFloat(computedStyle.borderBottomWidth) || 0;
+
+              const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+              const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+              const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
+              const paddingBottom =
+                parseFloat(computedStyle.paddingBottom) || 0;
+
+              const dpr = window.devicePixelRatio || 1;
+
+              // Calculate the actual content area (excluding borders and padding)
+              const contentRect = {
+                left: rect.left + borderLeft + paddingLeft,
+                top: rect.top + borderTop + paddingTop,
+                width:
+                  rect.width -
+                  borderLeft -
+                  borderRight -
+                  paddingLeft -
+                  paddingRight,
+                height:
+                  rect.height -
+                  borderTop -
+                  borderBottom -
+                  paddingTop -
+                  paddingBottom,
+              };
+              let actualContentWidth = contentRect.width;
+              let actualContentHeight = contentRect.height;
+              // Add some margin to ensure we don't cut off any content
+              const margin = 0; // 2px margin
+
+              const leftMargin = 2; // 2px margin on left
+              const topMargin = 2; // 2px margin on top
+              const rightPadding = 4; // Remove 4px from right to avoid capturing outside content
+              const bottomPadding = 5; // Remove 5px from bottom
+
+              const preciseCrop = {
+                left: Math.max(
+                  0,
+                  (contentRect.left - leftMargin + window.scrollX) * dpr
+                ),
+                top: Math.max(
+                  0,
+                  (contentRect.top - topMargin + window.scrollY) * dpr
+                ),
+                width: Math.round(
+                  (Math.min(contentRect.width, actualContentWidth) +
+                    leftMargin -
+                    rightPadding) *
+                    dpr
+                ),
+                height: Math.round(
+                  (Math.min(contentRect.height, actualContentHeight) +
+                    topMargin -
+                    bottomPadding) *
+                    dpr
+                ),
+              };
+
+              console.log("Original rect:", rect);
+              console.log("Content rect:", contentRect);
+              console.log("Precise crop:", preciseCrop);
+              console.log("Device pixel ratio:", dpr);
+
+              const videoWidth = 1920;
+              const videoHeight = 1080;
+
+              try {
+                setRecordingStatus("Processing video...");
+                const token = await getToken();
+
+                const newBlob = await processVideoWithFFmpeg(
+                  blob,
+                  preciseCrop,
+                  {
+                    width: videoWidth,
+                    height: videoHeight,
+                  },
+                  token,
+                  window.location.pathname.split("/")[1]
+                );
+
+                setRecordingStatus("Preparing download...");
+                downloadBlob(newBlob, "recording.webm");
+              } catch (processError) {
+                notify("Video processing failed", "error");
+                console.error("Video processing failed:", processError);
+                // Fallback: download original blob
+              }
+            }
+            screenChunks.current = [];
+          }
+
+          // Cleanup
+          audioContext.close().catch(console.warn);
+          setRecordingStatus("");
+        }, 1000);
+      };
+
+      screenRecorder.current.onerror = (event) => {
+        console.error("MediaRecorder error:", event.error);
+        setRecordingStatus("Recording error occurred");
+      };
+
+      // Handle stream ending
+      const handleStreamEnd = () => {
+        console.log("Stream ended by user");
+        if (
+          screenRecorder.current &&
+          screenRecorder.current.state === "recording"
+        ) {
+          screenRecorder.current.stop();
+        }
+      };
+
+      screenStream.getVideoTracks().forEach((track) => {
+        track.onended = handleStreamEnd;
+      });
+
+      // Store references for cleanup
+      activeStreams.current = [screenStream];
+      if (systemAudioStream) {
+        activeStreams.current.push(systemAudioStream);
+      }
+
+      // Start recording with time slicing for better performance
+      screenRecorder.current.start(1000); // 1 second chunks
+      setRecordingStatus("Recording...");
+
+      // Start video playback AFTER recording starts
+      setTimeout(() => {
+        setIsPlaying(true);
+        console.log("Started video playback");
+      }, 100);
+
+      // Auto-stop after maxTime if set
       if (maxTimeInSeconds > 0) {
         setTimeout(() => {
-          if (mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-            cleanupRecording();
+          if (
+            screenRecorder.current &&
+            screenRecorder.current.state === "recording"
+          ) {
+            console.log("Auto-stopping recording after max time");
+            screenRecorder.current.stop();
           }
         }, maxTimeInSeconds * 1000);
       }
 
-      // Stop recording if user ends screen sharing
-      if (videoTrack) {
-        videoTrack.addEventListener("ended", () => {
-          if (mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-            cleanupRecording();
-          }
-        });
-      }
+      console.log("Recording started successfully");
     } catch (err) {
-      notify("Screen capture failed.", "error");
-      setIsPlaying(false);
-      cleanupRecording();
+      console.error("Recording setup failed:", err);
+
+      // Cleanup on error
+      activeStreams.current.forEach((stream) => {
+        stream.getTracks().forEach((track) => track.stop());
+      });
+      activeStreams.current = [];
+
+      // User-friendly error messages
+      let errorMessage = "Recording failed: ";
+      switch (err.name) {
+        case "NotAllowedError":
+          errorMessage +=
+            "Permission denied. Please allow screen recording access.";
+          break;
+        case "NotSupportedError":
+          errorMessage += "Screen recording is not supported in this browser.";
+          break;
+        case "NotFoundError":
+          errorMessage += "No recording source found.";
+          break;
+        case "AbortError":
+          errorMessage += "Recording was cancelled by user.";
+          break;
+        default:
+          errorMessage += "Unknown error occurred.";
+      }
+
+      setRecordingStatus("");
+      notify(errorMessage, "error");
     }
   };
 
-  // Helper to download blob
-  const downloadBlob = (blob, filename) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.style.display = "none";
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(url);
-    a.remove();
+  // Enhanced stop recording function
+
+  const stopRecording = async () => {
+    console.log("Stopping recording...");
+    setRecordingStatus("Stopping recording...");
+    setIsRecording(false);
+    exportButtonRef.current.style.display = "none";
+    try {
+      // Stop cursor recording if active (Electron specific)
+      if (
+        window.electronAPI &&
+        typeof window.electronAPI.forceStopRecording === "function"
+      ) {
+        await window.electronAPI.forceStopRecording();
+      }
+
+      // Stop MediaRecorder
+      if (
+        screenRecorder.current &&
+        screenRecorder.current.state === "recording"
+      ) {
+        screenRecorder.current.stop();
+      }
+
+      if (
+        cameraRecorder.current &&
+        cameraRecorder.current.state === "recording"
+      ) {
+        cameraRecorder.current.stop();
+      }
+
+      // Stop all active streams
+      activeStreams.current.forEach((stream) => {
+        stream.getTracks().forEach((track) => {
+          console.log(`Stopping ${track.kind} track:`, track.label);
+          track.stop();
+        });
+      });
+      activeStreams.current = [];
+
+      setIsPlaying(false);
+      console.log("Recording stopped successfully");
+    } catch (err) {
+      console.error("Error stopping recording:", err);
+      setRecordingStatus("Error stopping recording");
+    }
   };
 
-  // Cleanup function for all resources
+  // Utility function for better blob downloading
+  const downloadBlob = (chunks, filename) => {
+    try {
+      const blob = Array.isArray(chunks)
+        ? new Blob(chunks, { type: "video/webm" })
+        : chunks;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = filename;
+      link.style.display = "none";
+
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      console.log(`Downloaded: ${filename}`);
+      notify("Recording downloaded successfully!", "success");
+    } catch (error) {
+      console.error("Download failed:", error);
+      notify("Failed to download recording", "error");
+    }
+  };
+
+  // const handleSubtitleGeneration = async (blob, token) => {
+  //   try {
+  //     setRecordingStatus("Generating subtitles...");
+  //     const file = new File([blob], "video.webm");
+  //     const formData = new FormData();
+  //     formData.append("video", file);
+
+  //     const uploadResponse = await fetch(
+  //       `${import.meta.env.VITE_SERVER_URL}/api/user/upload-video`,
+  //       {
+  //         method: "POST",
+  //         headers: { Authorization: `Bearer ${token}` },
+  //         body: formData,
+  //         credentials: "include",
+  //       }
+  //     );
+
+  //     const uploadResult = await uploadResponse.json();
+  //     setRecordingStatus("Processing audio for subtitles...");
+
+  //     const subtitleResponse = await fetch(
+  //       `${import.meta.env.VITE_SERVER_URL}/api/user/generate-subtitles`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //         body: JSON.stringify({ audioPath: uploadResult.audioUrl }),
+  //         credentials: "include",
+  //       }
+  //     );
+
+  //     const subtitleData = await subtitleResponse.json();
+  //     setRecordingStatus("Subtitles generated!");
+  //     setSubtitleArray(subtitleData.subtitles);
+  //   } catch (err) {
+  //     console.error("Subtitle generation failed:", err);
+  //     setRecordingStatus("Failed to generate subtitles");
+  //   }
+  // };
+
   const cleanupRecording = () => {
-    // Stop all tracks in the stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
 
-    // Clean up audio resources
     if (audioContextRef.current) {
-      // Clear audio monitoring interval
       if (audioContextRef.current.monitoringInterval) {
         clearInterval(audioContextRef.current.monitoringInterval);
       }
-
-      // Close audio context
       try {
         audioContextRef.current.close();
       } catch (err) {
-        // notify("Failed to close audio context", "error");
+        console.warn("Failed to close audio context:", err);
       }
       audioContextRef.current = null;
     }
 
-    // Close recorder
     if (recorderRef.current && recorderRef.current.state === "recording") {
       recorderRef.current.stop();
       recorderRef.current = null;
@@ -326,57 +684,106 @@ const ExportPreview = () => {
     setRecordingStatus("");
   };
 
-  // Clean up on component unmount
+  const scaleElementsForExport = (elements, scale) => {
+    return elements.map((element) => ({
+      ...element,
+      size: element.size
+        ? {
+            width: element.size.width * scale,
+            height: element.size.height * scale,
+          }
+        : element.size,
+      position: element.position
+        ? {
+            x: element.position.x * scale,
+            y: element.position.y * scale,
+          }
+        : element.position,
+    }));
+    console.log("SCALED DOWN", sourceAndTiming);
+    
+  };
+
+  const handleScale = () =>{
+    // Scale sources and effects for export mode
+    const scaledSources = scaleElementsForExport(sourceAndTiming, 0.5);
+    const scaledEffects = scaleElementsForExport(effectsAndTiming, 0.5);
+    
+    // Update the context with scaled values
+    setSourceAndTiming(scaledSources);
+    setEffectsAndTiming(scaledEffects);
+    
+    console.log("SCALED DOWN", scaledSources);
+  }
   useEffect(() => {
     return () => {
       cleanupRecording();
     };
-  }, []);
+  }, [isPlaying]);
 
   return (
-    <>
-      <div className={styles.header}>
-        <button
-          onClick={() => {
-            setIsPlaying(false);
-            setSeekerPosition(0);
-            setSeekerPositionManuallyChanged(true);
-            setIsExportPreview(false);
-            setIsSubtitleGen(false);
-          }}
-          className="button-purple"
-          style={{ width: "70px", height: "30px" }}
-        >
-          Go back
-        </button>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "20px",
-          marginTop: "50px",
-        }}
-      >
-        {recordingStatus && (
-          <>
-            <h3 style={{ color: "white" }}>{recordingStatus}</h3>
-          </>
-        )}
-        <VideoPlayer />
-        <button
-          onClick={captureVideoPlayer}
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: "100px",
+        flexDirection: "column",
+      }}
+    >
+      <VideoPlayer isExportRecording={true} />
+      <div style={{display: "flex", flexDirection: "row", alignItems: "center", marginTop:"50px", gap:"20px" }}>
+          <button
           ref={exportButtonRef}
-          className="button-purple"
-          style={{ width: "70px", height: "30px" }}
-        >
-          Start
-        </button>
+            onClick={() => startRecording(recordingType.screen)}
+            className="button-purple"
+            style={{
+              minWidth: "60px",
+              maxWidth: "fit-content",
+              height: "30px",
+            }}
+          >
+            Start
+          </button>        
+          <button
+            onClick={() => {
+              handleScale();
+              setIsExportPreview(false);
+              setSeekerPosition(0);
+              setSeekerPositionManuallyChanged(true);
+              setIsPlaying(false);
+              setIsSubtitleGen(false);
+            }}
+            className="button-purple"
+            style={{
+              minWidth: "60px",
+              maxWidth: "fit-content",
+              height: "30px",
+            }}
+          >
+            Go back
+          </button>
+      
+        {recordingStatus !== "" && (
+          <p style={{ marginTop: "20px", color: "white", fontSize: "15px" }}>
+            Recording status: {recordingStatus}
+          </p>
+        )}
+        {isRecording && (
+          <div style={{ marginTop: "20px", color: "white", fontSize: "15px" }}>
+            <label>Don't close this window or open any other window</label>
+            <ul style={{ listStyleType: "disc", paddingLeft: "10px" }}>
+              <li>Your screen is being recorded</li>
+              <li>
+                After recording is completed, it will be cropped to only include
+                the video
+              </li>
+              <li>The recording will then be enhanced and downloaded</li>
+            </ul>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

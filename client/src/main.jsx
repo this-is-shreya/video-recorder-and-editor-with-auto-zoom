@@ -18,6 +18,9 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key");
 }
+const isElectron = () =>{
+  return typeof window !== undefined && window.electronAPI
+}
 createRoot(document.getElementById("root")).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <StrictMode>
@@ -26,12 +29,12 @@ createRoot(document.getElementById("root")).render(
       >
         <Router>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/open" element={<OpenProjects />} />
-            <Route path="/new" element={<App />} />
-            <Route path="/:id" element={<App />} />
+            {!isElectron() ? <Route path="/" element={<LandingPage />} /> : <Route path="/" element={<Navigate to="/auth" replace />} />}
+            {isElectron() && <Route path="/auth" element={<Auth />} />}
+            {isElectron() && <Route path="/dashboard" element={<Dashboard />} />}
+            {isElectron() && <Route path="/open" element={<OpenProjects />} />}
+            {isElectron() && <Route path="/new" element={<App />} />}
+            {isElectron() && <Route path="/:id" element={<App />} />}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />

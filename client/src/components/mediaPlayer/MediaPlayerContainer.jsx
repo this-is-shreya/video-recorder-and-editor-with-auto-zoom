@@ -4,14 +4,23 @@ import Transition1 from "../transitions/Transition1";
 import Transition2 from "../transitions/Transition2";
 import Transition3 from "../transitions/Transition3";
 import Transition4 from "../transitions/Transition4";
-import { backgroundType, mediaType, transitionType } from "../../utils/MediaEnum";
+import {
+  backgroundType,
+  mediaType,
+  transitionType,
+} from "../../utils/MediaEnum";
 import Transition5 from "../transitions/Transition5";
 import AppContext from "../../AppContext";
 import Background from "../background/Background";
 import Transition6 from "../transitions/Transition6";
 
 const MediaPlayerContainer = ({ trackNum }) => {
-  const { currentSourceAndTiming, setIsPlaying, isExportPreview, sourceAndTiming } = useContext(AppContext);
+  const {
+    currentSourceAndTiming,
+    setIsPlaying,
+    isExportPreview,
+    sourceAndTiming,
+  } = useContext(AppContext);
   
   const currentSourceAndTimingFiltered = currentSourceAndTiming.filter(
     (item) => item.trackNum === trackNum
@@ -50,10 +59,12 @@ const MediaPlayerContainer = ({ trackNum }) => {
               variant={currentSourceAndTimingFiltered[0]?.source}
             />
           )}
-          {isTransitioning &&
-            _transitionType === transitionType.waves && <Transition1 />}
-          {isTransitioning &&
-            _transitionType === transitionType.reveal && <Transition2 />}
+          {isTransitioning && _transitionType === transitionType.waves && (
+            <Transition1 />
+          )}
+          {isTransitioning && _transitionType === transitionType.reveal && (
+            <Transition2 />
+          )}
           {isTransitioning && _transitionType === transitionType.lineWipe && (
             <Transition3 />
           )}

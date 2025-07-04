@@ -29,7 +29,7 @@ const Subtitle4 = ({ wordsToShow }) => {
       }}
     >
       {wordsToShow.map((word, idx) => {
-        if (word.word.length === 0) {
+        if (!word || !word.word || word?.word.length === 0) {
           return <></>;
         }
         return (

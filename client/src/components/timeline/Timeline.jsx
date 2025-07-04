@@ -19,8 +19,8 @@ import { Tooltip } from "react-tooltip";
 import { notify } from "../../utils/toast";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { useCaptureVideoPlayer } from "../../utils/export";
 import { fetchEncryptedData, isAuthorized } from "../../utils/authorization";
+import ZoomTrack from "./ZoomTrack";
 
 const useKeyPress = (key, callback, withCtrl = false) => {
   const callbackRef = useRef(callback);
@@ -83,9 +83,8 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     setDataArray,
     subtitleArray,
     setProjectTitle,
-    startRecording,
-    stopRecording,
-    mediaBlobUrl,
+    cursorDataObj,
+    setCursorDataObj,
     setIsExportPreview,
   } = useContext(AppContext);
 
@@ -260,6 +259,10 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
       notify("Cannot export as no media present at 00:00", "warning");
       return;
     }
+    if(window.location.href.includes("new")) {
+      notify("Please save the project before exporting", "warning");
+      return;
+    }
     setIsExportPreview(true);
   };
   const handleFeedback = async() => {
@@ -397,6 +400,8 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           setEffectsAndTiming(effects_and_timing ? effects_and_timing : []);
           setPositions(_positions ? _positions : {});
           setElements(_elements ? _elements : []);
+          setCursorDataObj(result.data.cursor_data_obj || {});
+          setSeekerPosition(0);
           setFetchFromTimeline(true);
           setDataArray([
             {
@@ -493,7 +498,7 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           className="button-purple"
           style={{ minWidth: "60px", maxWidth: "fit-content", height: "30px" }}
           onClick={() =>
-            handleSave(sourceAndTiming, effectsAndTiming, elements, positions)
+            handleSave(sourceAndTiming, effectsAndTiming, elements, positions, cursorDataObj)
           }
         >
           Save
@@ -580,8 +585,8 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           <Controls />
 
           <div className="all-tracks">
+            <ZoomTrack trackNum={6}/>
             <Seeker />
-
             <Track
               isDeleteMedia={isDeleteMedia}
               setIsDeleteMedia={setIsDeleteMedia}

@@ -72,7 +72,7 @@ const TransitionPanel = () => {
     <div className="panel">
       {(!selectedElement.id ||
         selectedElement.mediaType !== mediaType.video) && (
-        <h3 style={{ padding: "10px" }}>No video element selected</h3>
+        <label style={{ padding: "10px" }}>No video element selected</label>
       )}
       {previousSourceAndTiming &&
         selectedElement.mediaType === mediaType.video && (

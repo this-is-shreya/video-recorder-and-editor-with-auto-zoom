@@ -14,7 +14,6 @@ export const getCurrentSources = (
       Math.floor(currentTime / pixels[zoomTimeline]) >= item?.newStart &&
       Math.floor(currentTime / pixels[zoomTimeline]) <= item?.newEnd
     );
-  });
-
+  });  
   return filteredElements;
 };

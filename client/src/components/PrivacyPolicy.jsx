@@ -28,7 +28,7 @@ const PrivacyPolicy = () => {
       </label>
 
       <p>
-        This Privacy Policy explains how Rookieclip
+        This Privacy Policy explains how RookieClip
         collects, uses, and protects your information when you use our video
         editor application.
       </p>

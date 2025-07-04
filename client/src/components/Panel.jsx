@@ -11,6 +11,7 @@ import Subtitles from "./subtitles/Subtitles";
 import Icons from "./icons/Icons";
 import SubtitleStyleSettings from "./subtitles/SubtitleStyleSettings";
 import Elements from "./elements/Elements";
+import ZoomSettings from "./zoom/ZoomSettings";
 
 const Panel = (props) => {
   return (
@@ -28,6 +29,7 @@ const Panel = (props) => {
       )}
       {props.panelType === navbarObject.icons && <Icons />}
       {props.panelType === navbarObject.elements && <Elements />}
+      {props.panelType === navbarObject.zoom && <ZoomSettings />}
     </>
   );
 };

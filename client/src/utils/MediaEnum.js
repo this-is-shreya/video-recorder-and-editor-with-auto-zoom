@@ -11,6 +11,7 @@ export const navbarObject = Object.freeze({
   subtitleStyles: "subtitleStyles",
   icons: "icons",
   elements: "elements",
+  zoom: "zoom"
 });
 
 export const recordingType = Object.freeze({
