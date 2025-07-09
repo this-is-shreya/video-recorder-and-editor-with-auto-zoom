@@ -4,17 +4,24 @@ import styles from "./LandingPage.module.css";
 import { RiCameraLensAiLine } from "react-icons/ri";
 import { FaClapperboard, FaQuoteLeft, FaStar } from "react-icons/fa6";
 import { BsStars } from "react-icons/bs";
+import { FaWindows } from "react-icons/fa";
 
 const LandingPage = () => {
-  const [featureSource, setFeatureSource] = useState("/assets/feature1.mp4");
+  const [featureSource, setFeatureSource] = useState("/assets/feature1.webm");
   const navigate = useNavigate();
   const featureSet = [
-    "Record and edit in one place",
     "Smooth transitions",
     "Auto generate subtitles",
-    "Zoom into a specific point",
     "Titlecards, lowerthirds and more!",
   ];
+  const handleDownload = () => {
+    const link = document.createElement("a");
+    link.href = `exe/RookieClip Setup 1.0.0.exe`;
+    link.download = "RookieClip Setup 1.0.0.exe"; // name of the downloaded file
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   return (
     <div className={styles["container"]}>
       <div className={styles["navbar"]}>
@@ -55,15 +62,40 @@ const LandingPage = () => {
           <hr />
           <p style={{ color: "#ddd", marginTop: "10px", fontSize: "20px" }}>
             Screen recorder and video editor packed with powerful features like
-            drag-and-drop timelines, zoom effects, text overlays, and one-click
-            transitions.
+            drag-and-drop timelines, auto zoom effects, text overlays, and
+            one-click transitions.
           </p>
           <button
             className="button-purple"
-            style={{ marginTop: "10px" }}
-            onClick={() => navigate("/auth")}
+            style={{
+              marginTop: "10px",
+              backgroundColor: "#2723d8",
+              color: "white",
+            }}
+            onClick={() => handleDownload()}
           >
-            Get started
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              <label style={{ fontSize: "20px" }}>
+                <strong>Free Download</strong>
+              </label>
+              <label
+                style={{
+                  fontSize: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  justifyContent: "center",
+                }}
+              >
+                <FaWindows /> Windows 10 and 11
+              </label>
+            </div>
           </button>
           <div className={styles["user-rating"]}>
             {/* <div className={styles["avatars"]}>
@@ -89,7 +121,7 @@ const LandingPage = () => {
                 <FaStar color="#fed187" size={"25"} />
               </div>
               <p style={{ color: "#ddd" }}>
-                10+ creators record using RookieClip
+                100+ creators record using RookieClip
               </p>
             </div>
             <label
@@ -102,13 +134,13 @@ const LandingPage = () => {
               }}
             >
               <BsStars />
-              Last updated on 12 June, 2025
+              Last updated on 5 July, 2025
             </label>
           </div>
         </div>
         <div className={styles["video-demo"]}>
           <video
-            src="/assets/proper demo.mp4"
+            src="/assets/video1.webm"
             autoPlay
             loop
             muted
@@ -116,8 +148,21 @@ const LandingPage = () => {
           ></video>
         </div>
       </div>
+      <div className={styles["long-demo"]}>
+          <h1 style={{ textAlign: "center", color: "white" }}>
+            Auto zoom videos that focus on the action!
+          </h1>
+          <video
+            src="/assets/video-2-2-edited.mp4"
+            autoPlay
+            loop
+            muted
+            style={{ width: "100%" }}
+          ></video>
+      </div>
+
       <h1 style={{ marginTop: "10%", textAlign: "center" }}>
-        Create beautiful videos with just a click!
+        A lot more features than just auto zoom!
       </h1>
       <div className={styles["feature-section"]}>
         <div className={styles["features"]}>
@@ -126,13 +171,13 @@ const LandingPage = () => {
               key={index}
               className={
                 styles["feature"] +
-                (featureSource === `/assets/feature${index + 1}.mp4`
+                (featureSource === `/assets/feature${index + 1}.webm`
                   ? ` ${styles["selected"]}`
                   : "")
               }
               data-alt={`${index}`}
               onClick={() =>
-                setFeatureSource(`/assets/feature${index + 1}.mp4`)
+                setFeatureSource(`/assets/feature${index + 1}.webm`)
               }
             >
               <h3>{val}</h3>
@@ -153,9 +198,8 @@ const LandingPage = () => {
         <div className={styles["testimonial"]}>
           <FaQuoteLeft color="EB1AB4" size={"30"} />
           <p>
-            I was blown away by how smooth everything feels. I’ve used complex
-            tools before, but this one gets out of your way and just lets you be
-            creative.
+            I was blown away by how smooth everything feels. Absolutely love the
+            auto zooms!
           </p>
           <div className={styles["user-details"]}>
             <img className={styles["avatar"]} src="/assets/shobhit.png"></img>
@@ -170,8 +214,8 @@ const LandingPage = () => {
         <div className={styles["testimonial"]}>
           <FaQuoteLeft color="EB1AB4" size={"30"} />
           <p>
-            The filters and animated text effects are 🔥. Definitely sticking with
-            this one.
+            The auto zoom and animated text effects are 🔥. Definitely sticking
+            with this one.
           </p>
           <div className={styles["user-details"]}>
             <img className={styles["avatar"]} src="/assets/nikita.png"></img>
@@ -190,19 +234,57 @@ const LandingPage = () => {
       <button
         className="button-purple"
         style={{
-          margin: "0 auto",
-          marginTop: "20px",
-          width: "100px",
-          height: "40px",
-          fontSize: "15px",
+          margin: "20px auto",
+          backgroundColor: "#2723d8",
+          color: "white",
+          height: "fit-content",
+          width: "fit-content",
         }}
-        onClick={() => navigate("/auth")}
+        onClick={() => handleDownload()}
       >
-        Get started
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+          }}
+        >
+          <label style={{ fontSize: "20px" }}>
+            <strong>Free Download</strong>
+          </label>
+          <label
+            style={{
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              justifyContent: "center",
+            }}
+          >
+            <FaWindows /> Windows 10 and 11
+          </label>
+        </div>
       </button>
       <div className={styles["footer"]}>
         <p style={{ color: "#ddd" }}>
-          Copyright © 2025 RookieClip | All Rights Reserved | {<a href="/privacy-policy" style={{textDecoration:"none", color:"white"}}>Privacy Policy</a>} | {<a href="/terms-of-service" style={{textDecoration:"none", color:"white"}}>Terms of Service</a>}
+          Copyright © 2025 RookieClip | All Rights Reserved |{" "}
+          {
+            <a
+              href="/privacy-policy"
+              style={{ textDecoration: "none", color: "white" }}
+            >
+              Privacy Policy
+            </a>
+          }{" "}
+          |{" "}
+          {
+            <a
+              href="/terms-of-service"
+              style={{ textDecoration: "none", color: "white" }}
+            >
+              Terms of Service
+            </a>
+          }
         </p>
       </div>
     </div>

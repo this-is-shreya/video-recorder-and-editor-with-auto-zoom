@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import "./App.css";
 import AppContext from "./AppContext";
 import Navbar from "./components/Navbar";
@@ -16,13 +16,12 @@ import { notify } from "./utils/toast";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import CryptoJS from "crypto-js";
 import { sendEncryptedData, sendUnencryptedData } from "./utils/authorization";
+import AuthContext from "./AuthContext";
 
 function App() {
+  const {userData} = useContext(AuthContext)
   let { id } = useParams();
   id = id ? id : Date.now();
-  const { getToken } = useAuth();
-  const { isLoaded, isSignedIn, user } = useUser();
-  const [token, setToken] = useState(null);
   const navigate = useNavigate();
   const [seekerPosition, setSeekerPosition] = useState(0);
   const [sourceAndTiming, setSourceAndTiming] = useState([]);
@@ -98,7 +97,6 @@ function App() {
       return;
     }
     notify("Saving project...", "info");
-    const token = await getToken();
     sources = await convertBlobToBase64(sources);
     const projectId = window.location.href.includes("new")
       ? id
@@ -117,7 +115,7 @@ function App() {
       const unencryptedDataReq = await sendUnencryptedData(
         `${import.meta.env.VITE_SERVER_URL}/api/user/save-data`,
         projectData,
-        token
+        userData.token
       );
       if (unencryptedDataReq?.ok) {
         notify("Project saved successfully!", "success");
@@ -141,19 +139,6 @@ function App() {
     );
   }, [seekerPosition]);
 
-  useEffect(() => {
-    const fetchToken = async () => {
-      if (isLoaded && isSignedIn) {
-        const token = await getToken();
-        if (!token) {
-          navigate("/auth");
-        } else {
-          setToken(token);
-        }
-      }
-    };
-    fetchToken();
-  }, []);
   return (
     <AppContext.Provider
       value={{

@@ -158,7 +158,7 @@ module.exports.processUsingFfmpeg = async (req, res) => {
 
           // Update database
           try {
-            const email = req.user.emailAddresses[0].emailAddress;
+            const email = req.user.email;
             const updateUserQuery = `UPDATE users SET num_exports = num_exports + 1 WHERE email = $1`;
             await pool.query(updateUserQuery, [email]);
 

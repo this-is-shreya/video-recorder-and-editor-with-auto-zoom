@@ -1,6 +1,11 @@
-import { StrictMode } from "react";
+import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import App from "./App.jsx";
 import OpenProjects from "./components/OpenProjects.jsx";
 import { ClerkProvider } from "@clerk/clerk-react";
@@ -12,26 +17,29 @@ import LandingPage from "./LandingPage.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import TermsOfService from "./components/TermsOfService.jsx";
+import SignInSuccess from "./components/SignInSuccess.jsx";
+import AuthContext from "./AuthContext.js";
+import UserDataProvider from "./UserDataProvider.jsx";
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Publishable Key");
-}
-const isElectron = () =>{
-  return typeof window !== undefined && window.electronAPI
-}
+const isElectron = () => {
+  return typeof window !== undefined && window.electronAPI;
+};
 createRoot(document.getElementById("root")).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-    <StrictMode>
-      <ClerkProvider
-        publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-      >
+    <UserDataProvider>
+      <StrictMode>
         <Router>
           <Routes>
-            {!isElectron() ? <Route path="/" element={<LandingPage />} /> : <Route path="/" element={<Navigate to="/auth" replace />} />}
+            {!isElectron() ? (
+              <Route path="/" element={<LandingPage />} />
+            ) : (
+              <Route path="/" element={<Navigate to="/auth" replace />} />
+            )}
+            <Route path="/sign-in-success" element={<SignInSuccess />} />
             {isElectron() && <Route path="/auth" element={<Auth />} />}
-            {isElectron() && <Route path="/dashboard" element={<Dashboard />} />}
+            {isElectron() && (
+              <Route path="/dashboard" element={<Dashboard />} />
+            )}
             {isElectron() && <Route path="/open" element={<OpenProjects />} />}
             {isElectron() && <Route path="/new" element={<App />} />}
             {isElectron() && <Route path="/:id" element={<App />} />}
@@ -54,7 +62,7 @@ createRoot(document.getElementById("root")).render(
           theme="light"
           transition={Bounce}
         />
-      </ClerkProvider>
-    </StrictMode>
+      </StrictMode>
+    </UserDataProvider>
   </GoogleOAuthProvider>
 );

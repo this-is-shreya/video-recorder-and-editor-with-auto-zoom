@@ -1,24 +1,24 @@
-import React, { useEffect, useState } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { notify } from "../utils/toast";
+import AppContext from "../AppContext";
+import AuthContext from "../AuthContext";
 
 const AdminDashboard = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [numUsers, setNumUsers] = useState(0);
   const [numExports, setNumExports] = useState(0);
-  const { getToken } = useAuth();
   const navigate = useNavigate();
+  const { userData } = useContext(AuthContext);
 
   const getUsersCount = async () => {
-    const token = await getToken();
-    if (!token) {
+    if (!userData) {
       navigate("/auth");
     }
     fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/num-users`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userData.token}`,
       },
       credentials:"include"
     })
@@ -31,14 +31,13 @@ const AdminDashboard = () => {
       });
   };
   const getExportsCount = async () => {
-    const token = await getToken();
-    if (!token) {
+    if (!userData) {
       navigate("/auth");
     }
     fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/num-exports`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userData.token}`,
       },
       credentials:"include"
     })
@@ -51,14 +50,13 @@ const AdminDashboard = () => {
       });
   };
   const getTopTenFeedbacks = async () => {
-    const token = await getToken();
-    if (!token) {
+    if (!userData) {
       navigate("/auth");
     }
     fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/feedbacks`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userData.token}`,
       },
       credentials:"include"
     })
@@ -72,14 +70,13 @@ const AdminDashboard = () => {
   };
 
   const checkAdmin = async () => {
-    const token = await getToken();
-    if (!token) {
+    if (!userData) {
       navigate("/auth");
     }
     fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/check-admin`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userData.token}`,
       },
       credentials:"include"
     })

@@ -67,7 +67,7 @@ const AppContext = createContext({
   isRecordingCursor: null,
   setIsRecordingCursor: () => {},
   recordingStartTime: null,
-  setRecordingStartTime: () => {},
+  setRecordingStartTime: () => {}
 });
 
 export default AppContext;

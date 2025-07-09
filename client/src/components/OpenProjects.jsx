@@ -1,28 +1,28 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import ProjectCard from "./ProjectCard";
 import { notify } from "../utils/toast";
-import { useAuth, useUser } from "@clerk/clerk-react";
 import Header from "./header/Header";
 import { decryptData, fetchEncryptedData } from "../utils/authorization";
+import AppContext from "../AppContext";
+import { useNavigate } from "react-router-dom";
+import AuthContext from "../AuthContext";
 
 const OpenProjects = () => {
   const [projects, setProjects] = useState([]);
   const [message, setMessage] = useState("");
   const [showLoading, setShowLoading] = useState(false);
-  const { getToken } = useAuth();
-  const { isLoaded, isSignedIn, user } = useUser();
-  const [token, setToken] = useState(null);
-
+  const {userData} = useContext(AuthContext)
+  const navigate = useNavigate();
+  
   useEffect(() => {
     setShowLoading(true);
     const fetchToken = async () => {
-      const token = await getToken();
-      if (!token) {
+      if (!userData) {
         navigate("/auth");
       } else {
         let response = await fetchEncryptedData(
           `${import.meta.env.VITE_SERVER_URL}/api/user/projects`,
-          token
+          userData.token
         );
         if (response.status !== 200 || response.data.result.length === 0) {
           setMessage("No projects found");

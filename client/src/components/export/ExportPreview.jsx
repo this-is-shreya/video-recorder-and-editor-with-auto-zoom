@@ -7,8 +7,8 @@ import { processVideoWithFFmpeg } from "../../utils/export";
 import { notify } from "../../utils/toast";
 import styles from "../header/styles/header.module.css";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
 import { recordingType } from "../../utils/MediaEnum";
+import AuthContext from "../../AuthContext";
 
 const ExportPreview = () => {
   const {
@@ -32,8 +32,9 @@ const ExportPreview = () => {
     sourceAndTiming,
     effectsAndTiming,
     setSourceAndTiming,
-    setEffectsAndTiming
+    setEffectsAndTiming,
   } = useContext(AppContext);
+const {userData} = useContext(AuthContext)
 
   const [recordingStatus, setRecordingStatus] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -43,7 +44,6 @@ const ExportPreview = () => {
   const recorderRef = useRef(null);
   const audioContextRef = useRef(null);
   const maxTimeInSeconds = convertToPixels(maxTime) / 10;
-  const { getToken } = useAuth();
 
   // Enhanced subtitle generation with better error handling
   const handleSubtitleGeneration = async (blob, token) => {
@@ -78,7 +78,7 @@ const ExportPreview = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${userData.token}`,
           },
           body: JSON.stringify({
             audioPath: uploadResult.audioUrl,
@@ -96,6 +96,7 @@ const ExportPreview = () => {
       const subtitleData = await subtitleResponse.json();
       console.log("Subtitle generation response:", subtitleData);
       setRecordingStatus("Subtitles generated!");
+      notify("Subtitles generated successfully!", "success");
       setSubtitleArray(subtitleData.subtitles);
     } catch (err) {
       console.error("Subtitle generation failed:", err);
@@ -342,9 +343,10 @@ const ExportPreview = () => {
 
             // Generate subtitles if enabled
             if (isSubtitleGen) {
-              const token = await getToken();
-              await handleSubtitleGeneration(blob, token);
+              await handleSubtitleGeneration(blob, userData.token);
             } else {
+              // Replace the cropping calculation section in your startRecording function with this:
+
               const computedStyle = window.getComputedStyle(videoPlayerElement);
               const rect = videoPlayerElement.getBoundingClientRect();
 
@@ -381,15 +383,12 @@ const ExportPreview = () => {
                   paddingTop -
                   paddingBottom,
               };
-              let actualContentWidth = contentRect.width;
-              let actualContentHeight = contentRect.height;
-              // Add some margin to ensure we don't cut off any content
-              const margin = 0; // 2px margin
 
+              // Fine-tune margins to ensure precise cropping
               const leftMargin = 2; // 2px margin on left
-              const topMargin = 2; // 2px margin on top
+              const topMargin = 0; // Remove top margin to prevent cropping from top
               const rightPadding = 4; // Remove 4px from right to avoid capturing outside content
-              const bottomPadding = 5; // Remove 5px from bottom
+              const bottomPadding = 2; // Reduce bottom padding to prevent showing content below
 
               const preciseCrop = {
                 left: Math.max(
@@ -398,20 +397,14 @@ const ExportPreview = () => {
                 ),
                 top: Math.max(
                   0,
-                  (contentRect.top - topMargin + window.scrollY) * dpr
-                ),
+                  (contentRect.top + topMargin + window.scrollY) * dpr
+                ), // Add topMargin instead of subtracting
                 width: Math.round(
-                  (Math.min(contentRect.width, actualContentWidth) +
-                    leftMargin -
-                    rightPadding) *
-                    dpr
+                  (contentRect.width + leftMargin - rightPadding) * dpr
                 ),
                 height: Math.round(
-                  (Math.min(contentRect.height, actualContentHeight) +
-                    topMargin -
-                    bottomPadding) *
-                    dpr
-                ),
+                  (contentRect.height - topMargin - bottomPadding) * dpr
+                ), // Subtract topMargin from height
               };
 
               console.log("Original rect:", rect);
@@ -424,7 +417,6 @@ const ExportPreview = () => {
 
               try {
                 setRecordingStatus("Processing video...");
-                const token = await getToken();
 
                 const newBlob = await processVideoWithFFmpeg(
                   blob,
@@ -433,7 +425,7 @@ const ExportPreview = () => {
                     width: videoWidth,
                     height: videoHeight,
                   },
-                  token,
+                  userData.token,
                   window.location.pathname.split("/")[1]
                 );
 
@@ -701,20 +693,19 @@ const ExportPreview = () => {
         : element.position,
     }));
     console.log("SCALED DOWN", sourceAndTiming);
-    
   };
 
-  const handleScale = () =>{
+  const handleScale = () => {
     // Scale sources and effects for export mode
     const scaledSources = scaleElementsForExport(sourceAndTiming, 0.5);
     const scaledEffects = scaleElementsForExport(effectsAndTiming, 0.5);
-    
+
     // Update the context with scaled values
     setSourceAndTiming(scaledSources);
     setEffectsAndTiming(scaledEffects);
-    
+
     console.log("SCALED DOWN", scaledSources);
-  }
+  };
   useEffect(() => {
     return () => {
       cleanupRecording();
@@ -727,43 +718,54 @@ const ExportPreview = () => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        gap: "100px",
+        gap: "10px",
         flexDirection: "column",
       }}
     >
       <VideoPlayer isExportRecording={true} />
-      <div style={{display: "flex", flexDirection: "row", alignItems: "center", marginTop:"50px", gap:"20px" }}>
-          <button
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          marginTop: "50px",
+          gap: "20px",
+        }}
+      >
+        <button
           ref={exportButtonRef}
-            onClick={() => startRecording(recordingType.screen)}
-            className="button-purple"
-            style={{
-              minWidth: "60px",
-              maxWidth: "fit-content",
-              height: "30px",
-            }}
-          >
-            Start
-          </button>        
-          <button
-            onClick={() => {
-              handleScale();
-              setIsExportPreview(false);
-              setSeekerPosition(0);
-              setSeekerPositionManuallyChanged(true);
-              setIsPlaying(false);
-              setIsSubtitleGen(false);
-            }}
-            className="button-purple"
-            style={{
-              minWidth: "60px",
-              maxWidth: "fit-content",
-              height: "30px",
-            }}
-          >
-            Go back
-          </button>
-      
+          onClick={() => {
+            startRecording(recordingType.screen);
+          }}
+          className="button-purple"
+          style={{
+            minWidth: "60px",
+            maxWidth: "fit-content",
+            height: "30px",
+          }}
+        >
+          Start
+        </button>
+        <button
+          onClick={() => {
+            stopRecording();
+            handleScale();
+            setIsExportPreview(false);
+            setSeekerPosition(0);
+            setSeekerPositionManuallyChanged(true);
+            setIsPlaying(false);
+            setIsSubtitleGen(false);
+          }}
+          className="button-purple"
+          style={{
+            minWidth: "60px",
+            maxWidth: "fit-content",
+            height: "30px",
+          }}
+        >
+          Go back
+        </button>
+
         {recordingStatus !== "" && (
           <p style={{ marginTop: "20px", color: "white", fontSize: "15px" }}>
             Recording status: {recordingStatus}
@@ -773,12 +775,13 @@ const ExportPreview = () => {
           <div style={{ marginTop: "20px", color: "white", fontSize: "15px" }}>
             <label>Don't close this window or open any other window</label>
             <ul style={{ listStyleType: "disc", paddingLeft: "10px" }}>
-              <li>Your screen is being recorded</li>
+              <li>Your entire screen is being recorded</li>
               <li>
                 After recording is completed, it will be cropped to only include
                 the video
               </li>
               <li>The recording will then be enhanced and downloaded</li>
+              <li>The result might be inaccurate</li>
             </ul>
           </div>
         )}

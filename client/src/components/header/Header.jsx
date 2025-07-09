@@ -1,21 +1,23 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styles from "../../components/header/styles/header.module.css";
-import { useAuth } from "@clerk/clerk-react";
 import AppContext from "../../AppContext";
 import { notify } from "../../utils/toast";
 import { RiCameraLensAiLine } from "react-icons/ri";
+import { googleLogout } from "@react-oauth/google";
+import AuthContext from "../../AuthContext";
 
 const Header = () => {
   const { projectTitle, setProjectTitle } = useContext(AppContext);
-  const { signOut } = useAuth();
+  const {setUserData} = useContext(AuthContext)
   const navigate = useNavigate();
   const [textProjectTitle, setTextProjectTitle] = useState(projectTitle);
 
   const handleSignOut = () => {
-    signOut({ redirectUrl: "/auth" }).catch(() => {
-      notify("Something went wrong", "error");
-    });
+    googleLogout();
+    localStorage.removeItem("userData");
+    setUserData(null);
+    navigate("/auth")
   };
 
   useEffect(() => {

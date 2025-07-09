@@ -24,26 +24,8 @@ const Video = () => {
   );
   const [borderRadius, setBorderRadius] = useState(0);
   const [speed, setSpeed] = useState(1);
-  const [zoomCenter, setZoomCenter] = useState({ x: 0, y: 0 });
-  const [zoomStart, setZoomStart] = useState(
-    !currentElement?.zoomStart
-      ? currentElement?.newStart
-      : currentElement.zoomStart
-  );
-  const [zoomStartValue, setZoomStartValue] = useState(
-    currentElement?.zoomStart
-      ? currentElement.zoomStart + currentElement?.newStart
-      : currentElement?.newStart
-  );
-  const [zoomDuration, setzoomDuration] = useState(
-    currentElement?.zoomDuration
-  );
-  const [zoomLevel, setZoomLevel] = useState(
-    currentElement ? currentElement?.zoomLevel : 1
-  );
   const [volume, setVolume] = useState(100);
   const [clickPosition, setClickPosition] = useState(null); // Stores red dot position
-  const [isOpen, setIsOpen] = useState(false);
   const [isEffectsOpen, setIsEffectsOpen] = useState(false);
   const videoRef = useRef(null);
 
@@ -90,82 +72,7 @@ const Video = () => {
 
     setSourceAndTiming(updatedSourceAndTiming);
   };
-  const handlePreviewClick = (e) => {
-    const previewRect = e.target.getBoundingClientRect();
-    const clickX = e.clientX - previewRect.left; // X coordinate of the click
-    const clickY = e.clientY - previewRect.top; // Y coordinate of the click
 
-    // Calculate zoom center as a percentage of the preview size
-    const centerX = clickX / previewRect.width;
-    const centerY = clickY / previewRect.height;
-
-    setZoomCenter({ x: centerX, y: centerY });
-    setClickPosition({ x: clickX, y: clickY }); // Store position for red dot
-  };
-  const addZoom = () => {
-    if (zoomDuration == null) {
-      return;
-    }
-
-    if (
-      zoomStartValue < currentElement.newStart ||
-      zoomDuration + zoomStartValue > currentElement.newEnd
-    ) {
-      return;
-    }
-    const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement.id) {
-        return {
-          ...item,
-          zoomCenter: zoomCenter,
-          zoomStart: Math.floor(Number(zoomStartValue - item.newStart)),
-          zoomDuration:
-            Number(zoomDuration) > item.newEnd
-              ? item.newEnd
-              : Number(zoomDuration),
-          zoomLevel: zoomLevel,
-        };
-      }
-      return item;
-    });
-
-    setSourceAndTiming([...updatedSourceAndTiming]);
-    setCurrentElement({
-      ...currentElement,
-      zoomStart: Number(zoomStartValue),
-      zoomDuration: Number(zoomDuration),
-      zoomLevel: zoomLevel,
-    });
-    notify("Zoom applied successfully!", "success");
-  };
-  const resetZoom = () => {
-    setZoomCenter({ x: 0, y: 0 });
-    setZoomStart(currentElement.newStart);
-    setzoomDuration(0);
-    setZoomLevel(1);
-    const updatedSourceAndTiming = sourceAndTiming.map((item) => {
-      if (item.id === selectedElement.id) {
-        return {
-          ...item,
-          zoomCenter: { x: 0, y: 0 },
-          zoomStart: null,
-          zoomDuration: 0,
-          zoomLevel: 1,
-        };
-      }
-      return item;
-    });
-
-    setSourceAndTiming([...updatedSourceAndTiming]);
-    setCurrentElement({
-      ...currentElement,
-      zoomStart: null,
-      zoomDuration: 0,
-      zoomLevel: 1,
-    });
-    notify("Zoom reset successfully!", "success");
-    setClickPosition(null); // Reset the red dot position
-  };
   const handleVideoEffect = (e) => {
     const effect = e.target.getAttribute("data-alt");
     if (!selectedElement) return;
@@ -179,6 +86,7 @@ const Video = () => {
 
     setSourceAndTiming(updatedSourceAndTiming);
   };
+
   useEffect(() => {
     if (selectedElement) {
       const selectedItem = sourceAndTiming.find(
@@ -186,29 +94,6 @@ const Video = () => {
       );
       if (selectedItem) {
         setBorderRadius(selectedItem.borderRadius || 0);
-        setZoomLevel(selectedItem.zoomLevel);
-        setZoomCenter(selectedItem.zoomCenter);
-        setZoomStart(
-          selectedItem.zoomStart
-            ? Math.floor(selectedItem.zoomStart + selectedItem.newStart)
-            : Math.floor(selectedItem.newStart)
-        );
-        setzoomDuration(
-          selectedItem.zoomDuration ? selectedItem.zoomDuration : 0
-        );
-
-        // Convert zoomCenter (relative) to absolute click position (pixels)
-        if (selectedItem.zoomCenter) {
-          const previewWidth = 290; // Match your preview width
-          const previewHeight = 180; // Match your preview height (16:9)
-
-          const absoluteX = selectedItem.zoomCenter.x * previewWidth;
-          const absoluteY = selectedItem.zoomCenter.y * previewHeight;
-
-          setClickPosition({ x: absoluteX, y: absoluteY });
-        } else {
-          setClickPosition(null); // Reset if no zoom data
-        }
       }
     }
   }, [selectedElement, sourceAndTiming]);
@@ -218,9 +103,6 @@ const Video = () => {
       (item) => item.id === selectedElement.id
     );
     setCurrentElement(selectedItem);
-    setZoomStartValue(
-      !selectedItem?.zoomStart ? selectedItem?.newStart : selectedItem.zoomStart
-    );
   }, [selectedElement, sourceAndTiming]);
 
   useEffect(() => {
@@ -241,6 +123,7 @@ const Video = () => {
 
     setZoomStartValue(Math.floor(seekerPosition / pixels[zoomTimeline]));
   }, [seekerPositionManuallyChanged, isSplit, isPlaying, seekerPosition]);
+
   return (
     <div className="slidecontainer">
       {selectedElement && currentElement?.mediaType === mediaType.video ? (
@@ -337,177 +220,6 @@ const Video = () => {
               </button>
             </div>
           </div>
-          <button
-            onClick={() => {
-              setIsOpen(!isOpen);
-            }}
-            style={{
-              backgroundColor: "#EB1AB4",
-              height: "30px",
-              borderColor: "transparent",
-              borderRadius: "4px",
-              color: "white",
-              cursor: "pointer",
-            }}
-          >
-            Zoom settings
-          </button>
-          {isOpen && (
-            <>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: "20px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <label style={{ width: "80px" }}>Start</label>
-                <input
-                  name="zoom-start"
-                  type="number"
-                  value={zoomStartValue}
-                  min={
-                    currentElement ? Math.floor(currentElement?.newStart) : 0
-                  }
-                  max={
-                    currentElement ? Math.floor(currentElement?.newEnd - 1) : 0
-                  }
-                  step={1}
-                  onChange={(e) => setZoomStart(Number(e.target.value))}
-                ></input>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: "20px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <label style={{ width: "80px" }}>Duration</label>
-                <input
-                  name="zoom-end"
-                  type="number"
-                  value={zoomDuration}
-                  min={0}
-                  max={
-                    currentElement
-                      ? Math.floor(currentElement?.newEnd - zoomStart)
-                      : 0
-                  }
-                  step={1}
-                  onChange={(e) => setzoomDuration(Number(e.target.value))}
-                ></input>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: "20px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <label style={{ width: "80px" }}>Level</label>
-                <input
-                  name="zoom-level"
-                  type="range"
-                  min={1}
-                  max={3}
-                  step={0.1}
-                  defaultValue={isNaN(zoomLevel) ? 1 : zoomLevel}
-                  onChange={(e) => setZoomLevel(e.target.value)}
-                />
-                <label>{isNaN(zoomLevel) ? 1 : zoomLevel}</label>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: "10px",
-                  justifyContent: "center",
-                }}
-              >
-                <div
-                  onClick={handlePreviewClick}
-                  style={{
-                    width: "290px", // Preview size
-                    // aspectRatio: "16/9",
-                    height: "180px",
-                    marginRight: "10px",
-                    border: "2px solid #ccc",
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  <video
-                    ref={videoRef}
-                    src={currentElement?.source}
-                    currentTime="30"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      position: "absolute",
-                      left: 0,
-                      top: 0,
-                    }}
-                    muted
-                  ></video>
-                  {clickPosition && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: clickPosition.y - 5,
-                        left: clickPosition.x - 5,
-                        width: "10px",
-                        height: "10px",
-                        backgroundColor: "red",
-                        borderRadius: "50%",
-                        pointerEvents: "none",
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "30px",
-                  justifyContent: "center",
-                }}
-              >
-                <button
-                  onClick={addZoom}
-                  style={{
-                    width: "30%",
-                    backgroundColor: "#892fff",
-                    height: "30px",
-                    borderColor: "transparent",
-                    borderRadius: "4px",
-                    color: "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  Apply
-                </button>
-                <button
-                  onClick={resetZoom}
-                  style={{
-                    width: "30%",
-                    backgroundColor: "grey",
-                    height: "30px",
-                    borderColor: "transparent",
-                    borderRadius: "4px",
-                    color: "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  Reset
-                </button>
-              </div>
-            </>
-          )}
           <button
             onClick={() => setIsEffectsOpen(!isEffectsOpen)}
             style={{

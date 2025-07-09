@@ -26,7 +26,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("recording-cancelled", callback),
   onRecordingForceStopped: (callback) =>
     ipcRenderer.on("recording-force-stopped", callback),
-
+  // OAuth methods
+  startGoogleAuth: () => ipcRenderer.invoke("start-google-auth"),
+  onAuthSuccess: (callback) => ipcRenderer.on("auth-success", callback),
+  onAuthError: (callback) => ipcRenderer.on("auth-error", callback),
   // Remove listeners (optional - for cleanup)
   removeAllListeners: () => {
     ipcRenderer.removeAllListeners("cursor-capture");
@@ -34,6 +37,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.removeAllListeners("recording-stopped");
     ipcRenderer.removeAllListeners("recording-cancelled");
     ipcRenderer.removeAllListeners("recording-force-stopped");
+    ipcRenderer.removeAllListeners("auth-success");
   },
 
   // Individual remove listener methods

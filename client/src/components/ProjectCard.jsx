@@ -1,18 +1,17 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { PiVideo } from "react-icons/pi";
 import { FiMoreVertical } from "react-icons/fi"; // Ellipsis menu icon
 import { Link } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
 import { notify } from "../utils/toast"
+import AuthContext from "../AuthContext";
 
 const ProjectCard = ({ project }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
-  const { getToken } = useAuth();
+  const { userData } = useContext(AuthContext);
 
   const handleDelete = async (project_id) => {
-    const token = await getToken();
-    if (!token) {
+    if (!userData) {
       navigate("/auth");
     } else {
       fetch(
@@ -21,7 +20,7 @@ const ProjectCard = ({ project }) => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${userData.token}`,
           },
           credentials:"include"
         }

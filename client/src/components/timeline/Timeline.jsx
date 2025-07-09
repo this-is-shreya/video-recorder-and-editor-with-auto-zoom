@@ -17,10 +17,10 @@ import { MdDelete } from "react-icons/md";
 import { LuRefreshCw } from "react-icons/lu";
 import { Tooltip } from "react-tooltip";
 import { notify } from "../../utils/toast";
-import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { fetchEncryptedData, isAuthorized } from "../../utils/authorization";
 import ZoomTrack from "./ZoomTrack";
+import AuthContext from "../../AuthContext";
 
 const useKeyPress = (key, callback, withCtrl = false) => {
   const callbackRef = useRef(callback);
@@ -85,16 +85,12 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     setProjectTitle,
     cursorDataObj,
     setCursorDataObj,
-    setIsExportPreview,
+    setIsExportPreview
   } = useContext(AppContext);
-
-  const { getToken } = useAuth();
-
-  const { user } = useUser();
+const {userData} = useContext(AuthContext)
 
   const navigate = useNavigate();
   const intervalRef = useRef(null);
-  const [token, setToken] = useState(null);
   const [isDeleteMedia, setIsDeleteMedia] = useState(false);
   const [positions, setPositions] = useState({}); // Store positions and sizes
   const [elements, setElements] = useState([]); // Store element IDs
@@ -269,13 +265,12 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     if (feedback.length === 0 || feedback.replaceAll(" ").length === 0) {
       return;
     }
-    const token = await getToken();
     setIsFeedbackButtonDisabled(true);
     fetch(`${import.meta.env.VITE_SERVER_URL}/api/user/feedback`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        "Authorization": `Bearer ${userData.token}`
       },
       body: JSON.stringify({ feedback: feedback }),
       credentials:"include"
@@ -346,7 +341,7 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
     if (!window.location.href.includes("new")) {
       const id = window.location.pathname.split("/")[1];
       const fetchToken = async () => {
-        const email = user ? user.emailAddresses[0].emailAddress : null;
+        const email = userData ? userData.email : null;
 
         const isUserAuthorized = await isAuthorized(id, email);
 
@@ -354,8 +349,7 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
           navigate("/auth");
           return;
         }
-        const token = await getToken();
-        if (!token) {
+        if (!userData) {
           navigate("/auth");
         } else {
           notify("Loading project data. Please wait.", "info");
@@ -367,7 +361,7 @@ const Timeline = ({ undo, redo, setUndo, setRedo, handleSave }) => {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${userData.token}`,
             },
             credentials: "include",
           });

@@ -168,7 +168,7 @@ module.exports.saveData = async (req, res) => {
         JSON.stringify(source_and_timing),
         JSON.stringify(effects_and_timing),
         project_id,
-        req.user.emailAddresses[0].emailAddress,
+        req.user.email,
         project_title,
         JSON.stringify(elements),
         JSON.stringify(positions),
@@ -218,7 +218,7 @@ module.exports.getParticularProject = async (req, res) => {
   try {
     const result = await pool.query(query, [
       id,
-      req.user.emailAddresses[0].emailAddress,
+      req.user.email,
     ]);
     console.log("result", result.rows);
 
@@ -255,7 +255,7 @@ module.exports.getParticularProject = async (req, res) => {
 
 module.exports.deleteParticularProject = async (req, res) => {
   const { id } = req.params;
-  const userEmail = req.user.emailAddresses[0].emailAddress;
+  const userEmail = req.user.email;
 
   console.log("Attempting to delete project:", id);
   const projectGetQuery = `SELECT * FROM projects WHERE project_id = $1 AND email = $2`;
@@ -300,9 +300,9 @@ module.exports.getAllProjects = async (req, res) => {
   const query = `SELECT project_id, project_title, created_at FROM projects WHERE email = $1`;
   try {
     const result = await pool.query(query, [
-      req.user.emailAddresses[0].emailAddress,
+      req.user.email,
     ]);
-    console.log("RESULT", result.rows, req.user.emailAddresses[0].emailAddress);
+    console.log("RESULT", result.rows, req.user.email);
     if (result.rows.length > 0) {
       sendEncryptedResponse(res, { result: result.rows });
     } else {
@@ -324,7 +324,7 @@ module.exports.feedback = async (req, res) => {
   if (!feedback || feedback.trim() === "") {
     return res.status(400).json({ error: "Feedback cannot be empty" });
   }
-  const values = [id, feedback, req.user.emailAddresses[0].emailAddress];
+  const values = [id, feedback, req.user.email];
 
   try {
     await pool.query(query, values);
@@ -336,7 +336,7 @@ module.exports.feedback = async (req, res) => {
 };
 module.exports.checkAdmin = async (req, res) => {
   try {
-    const email = req.user.emailAddresses[0].emailAddress;
+    const email = req.user.email;
     const query = `SELECT * FROM users where email = $1`;
 
     const result = await pool.query(query, [email]);
