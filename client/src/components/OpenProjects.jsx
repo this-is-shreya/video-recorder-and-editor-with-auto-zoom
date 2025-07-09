@@ -24,7 +24,8 @@ const OpenProjects = () => {
           `${import.meta.env.VITE_SERVER_URL}/api/user/projects`,
           userData.token
         );
-        if (response.status !== 200 || response.data.result.length === 0) {
+        
+        if (response.status !== 200 || response.data?.result.length === 0 || !response.data) {
           setMessage("No projects found");
           setShowLoading(false);
           return;

@@ -121,7 +121,7 @@ const LandingPage = () => {
                 <FaStar color="#fed187" size={"25"} />
               </div>
               <p style={{ color: "#ddd" }}>
-                100+ creators record using RookieClip
+                120+ creators record using RookieClip
               </p>
             </div>
             <label
@@ -134,7 +134,7 @@ const LandingPage = () => {
               }}
             >
               <BsStars />
-              Last updated on 5 July, 2025
+              Last updated on 9 July, 2025
             </label>
           </div>
         </div>
