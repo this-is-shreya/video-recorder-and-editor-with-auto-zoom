@@ -1,4 +1,3 @@
-const { clerkMiddleware } = require("@clerk/express");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -13,7 +12,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "100gb" }));
 app.use(express.urlencoded({ limit: "100gb", extended: true }));
-app.use(clerkMiddleware());
 // In your Node.js backend (e.g., server.js or routes/subtitles.js)
 const authRouter = require("./routes/auth");
 const userRouter = require("./routes/user");
