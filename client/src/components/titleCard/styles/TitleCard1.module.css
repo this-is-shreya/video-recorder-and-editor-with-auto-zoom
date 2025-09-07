@@ -1,0 +1,30 @@
+.container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background-color: #fcf6f6;
+  position: absolute;
+}
+
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.char {
+  display: inline-block;
+  font-weight: 900;
+  text-transform: uppercase;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  position: relative;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  font-size: 30px;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}

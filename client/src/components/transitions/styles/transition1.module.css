@@ -1,0 +1,71 @@
+.wave-transition-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  animation: bg-fill 1.5s ease-in-out forwards; /* Background fills at the end */
+  animation-delay: 0.2s;
+}
+.playing {
+  animation-play-state: running;
+}
+
+.paused {
+  animation-play-state: paused;
+}
+.wave-transition-container::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: -100%; /* Starts off-screen */
+  background-color: #000b76; /* Color of the last wave */
+  animation: bg-fill-move 1s ease-in-out forwards, bg-fill-exit 1s ease-in-out forwards;
+  animation-delay: 0.3s, 2.2s;
+  animation-play-state: inherit;
+}
+.wave {
+  position: absolute;
+  width: 100%;
+  height: 100%; /* Ensures full coverage */
+  top: 0; /* Start above screen */
+  animation: wave-drop 1.5s ease-in-out forwards;
+  animation-play-state: inherit;
+}
+.wave-1 {
+  animation-delay: 0s;
+}
+.wave-2 {
+  animation-delay: 0.2s;
+}
+.wave-3 {
+  animation-delay: 0.3s;
+}
+@keyframes wave-drop {
+  0% {
+    transform: translateY(0%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes bg-fill-move {
+  0% {
+    top: -100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+@keyframes bg-fill-exit {
+  0% {
+    top: 0%;
+  }
+  100% {
+    top: 100%;
+  }
+}

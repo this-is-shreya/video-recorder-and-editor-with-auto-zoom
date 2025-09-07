@@ -1,0 +1,14 @@
+.lower-third-modern {
+  position: absolute;
+  bottom: 50px;
+  left: 20px;
+  background: linear-gradient(45deg, #ff0077, #ffcc00);
+  color: white;
+  padding: 10px 20px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  border-radius: 30px;
+  text-transform: uppercase;
+  font-size: 14px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}

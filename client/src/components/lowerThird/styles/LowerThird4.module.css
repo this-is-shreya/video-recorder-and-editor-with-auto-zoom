@@ -1,0 +1,25 @@
+
+ .lower-third-animated {
+  position: absolute;
+  bottom: 40px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  font-family: Arial, sans-serif;
+  border-left: 5px solid #007bff;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  animation: slideIn 1s ease-in-out forwards;
+}
+
+
+@keyframes slideIn {
+  from {
+    left: 0px;
+  }
+  to {
+    left: 25px;
+  }
+
+}
